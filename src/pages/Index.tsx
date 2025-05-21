@@ -57,9 +57,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 const Index = () => {
   return (
     <ErrorBoundary>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
+      <AppContent />
     </ErrorBoundary>
   );
 };
