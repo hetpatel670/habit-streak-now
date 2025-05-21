@@ -6,23 +6,21 @@ import {
   signOut as firebaseSignOut, 
   GoogleAuthProvider,
   signInWithPopup,
-  onAuthStateChanged,
-  Auth,
-  User as FirebaseUser
+  onAuthStateChanged
 } from 'firebase/auth';
 import {
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  Firestore
-} from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+  ref,
+  set,
+  get,
+  update,
+  remove,
+  onValue,
+  off,
+  push,
+  serverTimestamp
+} from 'firebase/database';
+import { auth, database } from '../config/firebase';
+import { suggestTask } from '@/utils/openRouterApi';
 
 interface AppContextType {
   tasks: Task[];
@@ -33,14 +31,15 @@ interface AppContextType {
   completedTasksPercentage: number;
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  addTask: (task: Omit<Task, 'id'>) => void;
-  completeTask: (id: string) => void;
-  uncompleteTask: (id: string) => void;
-  deleteTask: (id: string) => void;
+  addTask: (task: Omit<Task, 'id'>) => Promise<void>;
+  completeTask: (id: string) => Promise<void>;
+  uncompleteTask: (id: string) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  getSuggestedTask: () => Promise<string>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -71,15 +70,14 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     { id: '3', name: 'Productive Week', icon: '🎯', description: 'Complete all tasks for a full week', earned: false },
   ]);
 
-  // Firebase auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userData = await fetchUserData(firebaseUser.uid);
         setUser(userData);
         setIsLoggedIn(true);
-        fetchUserTasks(firebaseUser.uid);
-        fetchUserStreak(firebaseUser.uid);
+        setupTaskListener(firebaseUser.uid);
+        setupStreakListener(firebaseUser.uid);
       } else {
         setUser(null);
         setIsLoggedIn(false);
@@ -88,31 +86,31 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (auth.currentUser) {
+        const tasksRef = ref(database, `users/${auth.currentUser.uid}/tasks`);
+        off(tasksRef);
+      }
+    };
   }, []);
 
-  // Fetch user data from Firestore
   const fetchUserData = async (uid: string): Promise<User> => {
     try {
-      const userDocRef = doc(db, 'users', uid);
-      const userDoc = await getDoc(userDocRef);
+      const userRef = ref(database, `users/${uid}`);
+      const snapshot = await get(userRef);
       
-      if (userDoc.exists()) {
-        return {
-          id: uid,
-          email: userDoc.data().email,
-          points: userDoc.data().points || 0,
-          currentStreak: userDoc.data().currentStreak || 0
-        };
+      if (snapshot.exists()) {
+        return snapshot.val();
       } else {
-        // Create user document if it doesn't exist
         const newUser = {
           id: uid,
           email: auth.currentUser?.email || '',
           points: 0,
-          currentStreak: 0
+          currentStreak: 0,
+          createdAt: serverTimestamp()
         };
-        await setDoc(userDocRef, newUser);
+        await set(userRef, newUser);
         return newUser;
       }
     } catch (error) {
@@ -126,238 +124,158 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   };
 
-  // Fetch user tasks from Firestore
-  const fetchUserTasks = async (uid: string) => {
-    try {
-      const tasksCollectionRef = collection(db, 'users', uid, 'tasks');
-      const tasksSnapshot = await getDocs(tasksCollectionRef);
-      const tasksList: Task[] = [];
-      
-      tasksSnapshot.forEach((doc) => {
-        tasksList.push({ id: doc.id, ...doc.data() } as Task);
-      });
-      
-      setTasks(tasksList);
-      
-      // Calculate completed tasks percentage
-      if (tasksList.length > 0) {
-        const completedCount = tasksList.filter(task => task.isCompleted).length;
-        const percentage = (completedCount / tasksList.length) * 100;
-        setCompletedTasksPercentage(Math.round(percentage));
+  const setupTaskListener = (uid: string) => {
+    const tasksRef = ref(database, `users/${uid}/tasks`);
+    onValue(tasksRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const tasksData = snapshot.val();
+        const tasksList = Object.entries(tasksData).map(([id, data]: [string, any]) => ({
+          id,
+          ...data
+        }));
+        setTasks(tasksList);
+        updateCompletionPercentage(tasksList);
       } else {
+        setTasks([]);
         setCompletedTasksPercentage(0);
       }
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-      setTasks([]);
-    }
+    });
   };
 
-  // Fetch user streak from Firestore
-  const fetchUserStreak = async (uid: string) => {
-    try {
-      const streakDocRef = doc(db, 'users', uid, 'streaks', 'current');
-      const streakDoc = await getDoc(streakDocRef);
-      
-      if (streakDoc.exists()) {
-        setCurrentStreak(streakDoc.data().currentStreak || 0);
-      } else {
-        // Create streak document if it doesn't exist
-        await setDoc(streakDocRef, { currentStreak: 0, lastCompletedDate: new Date() });
-        setCurrentStreak(0);
+  const setupStreakListener = (uid: string) => {
+    const streakRef = ref(database, `users/${uid}/streak`);
+    onValue(streakRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setCurrentStreak(snapshot.val().current || 0);
       }
-    } catch (error) {
-      console.error('Error fetching streak:', error);
-      setCurrentStreak(0);
-    }
+    });
   };
 
-  // Add a new task
+  const updateCompletionPercentage = (tasksList: Task[]) => {
+    if (tasksList.length === 0) {
+      setCompletedTasksPercentage(0);
+      return;
+    }
+    const completedCount = tasksList.filter(task => task.isCompleted).length;
+    const percentage = (completedCount / tasksList.length) * 100;
+    setCompletedTasksPercentage(Math.round(percentage));
+  };
+
   const addTask = async (task: Omit<Task, 'id'>) => {
     if (!auth.currentUser) return;
     
     try {
-      const uid = auth.currentUser.uid;
-      const tasksCollectionRef = collection(db, 'users', uid, 'tasks');
-      const newTaskRef = doc(tasksCollectionRef);
+      const tasksRef = ref(database, `users/${auth.currentUser.uid}/tasks`);
+      const newTaskRef = push(tasksRef);
       
-      const newTask = {
+      await set(newTaskRef, {
         ...task,
-        id: newTaskRef.id,
-      };
-      
-      await setDoc(newTaskRef, newTask);
-      setTasks(prev => [...prev, newTask as Task]);
+        createdAt: serverTimestamp()
+      });
     } catch (error) {
       console.error('Error adding task:', error);
+      throw error;
     }
   };
 
-  // Complete a task
   const completeTask = async (id: string) => {
     if (!auth.currentUser) return;
     
     try {
-      const uid = auth.currentUser.uid;
-      const taskDocRef = doc(db, 'users', uid, 'tasks', id);
-      
-      await updateDoc(taskDocRef, { isCompleted: true });
-      
-      setTasks(prev => 
-        prev.map(task => 
-          task.id === id ? { ...task, isCompleted: true } : task
-        )
-      );
-      
-      // Add points for completing task
-      if (user) {
-        const userDocRef = doc(db, 'users', uid);
-        await updateDoc(userDocRef, {
-          points: (user.points || 0) + 10
-        });
-        setUser(prev => prev ? { ...prev, points: prev.points + 10 } : null);
+      const taskRef = ref(database, `users/${auth.currentUser.uid}/tasks/${id}`);
+      await update(taskRef, { 
+        isCompleted: true,
+        completedAt: serverTimestamp()
+      });
+
+      // Update user points
+      const userRef = ref(database, `users/${auth.currentUser.uid}`);
+      const userSnapshot = await get(userRef);
+      if (userSnapshot.exists()) {
+        const currentPoints = userSnapshot.val().points || 0;
+        await update(userRef, { points: currentPoints + 10 });
+        setUser(prev => prev ? { ...prev, points: currentPoints + 10 } : null);
       }
 
-      // Update the completed tasks percentage
-      const updatedTasks = tasks.map(task => task.id === id ? { ...task, isCompleted: true } : task);
-      const completedCount = updatedTasks.filter(task => task.isCompleted).length;
-      const percentage = (completedCount / updatedTasks.length) * 100;
-      setCompletedTasksPercentage(Math.round(percentage));
-      
-      // Check and update streak if all tasks are completed
-      checkAndUpdateStreak(updatedTasks);
+      checkAndUpdateStreak();
     } catch (error) {
       console.error('Error completing task:', error);
+      throw error;
     }
   };
 
-  // Uncomplete a task
   const uncompleteTask = async (id: string) => {
     if (!auth.currentUser) return;
     
     try {
-      const uid = auth.currentUser.uid;
-      const taskDocRef = doc(db, 'users', uid, 'tasks', id);
-      
-      await updateDoc(taskDocRef, { isCompleted: false });
-      
-      setTasks(prev => 
-        prev.map(task => 
-          task.id === id ? { ...task, isCompleted: false } : task
-        )
-      );
-      
-      // Update completed tasks percentage
-      const updatedTasks = tasks.map(task => task.id === id ? { ...task, isCompleted: false } : task);
-      if (updatedTasks.length === 0) {
-        setCompletedTasksPercentage(0);
-      } else {
-        const completedCount = updatedTasks.filter(task => task.isCompleted).length;
-        const percentage = (completedCount / updatedTasks.length) * 100;
-        setCompletedTasksPercentage(Math.round(percentage));
-      }
+      const taskRef = ref(database, `users/${auth.currentUser.uid}/tasks/${id}`);
+      await update(taskRef, { 
+        isCompleted: false,
+        completedAt: null
+      });
     } catch (error) {
       console.error('Error uncompleting task:', error);
+      throw error;
     }
   };
 
-  // Delete a task
   const deleteTask = async (id: string) => {
     if (!auth.currentUser) return;
     
     try {
-      const uid = auth.currentUser.uid;
-      const taskDocRef = doc(db, 'users', uid, 'tasks', id);
-      
-      await deleteDoc(taskDocRef);
-      
-      setTasks(prev => prev.filter(task => task.id !== id));
-      
-      // Update completed tasks percentage
-      const updatedTasks = tasks.filter(task => task.id !== id);
-      if (updatedTasks.length === 0) {
-        setCompletedTasksPercentage(0);
-      } else {
-        const completedCount = updatedTasks.filter(task => task.isCompleted).length;
-        const percentage = (completedCount / updatedTasks.length) * 100;
-        setCompletedTasksPercentage(Math.round(percentage));
-      }
+      const taskRef = ref(database, `users/${auth.currentUser.uid}/tasks/${id}`);
+      await remove(taskRef);
     } catch (error) {
       console.error('Error deleting task:', error);
+      throw error;
     }
   };
 
-  // Check and update streak
-  const checkAndUpdateStreak = async (currentTasks: Task[]) => {
-    if (!auth.currentUser || currentTasks.length === 0) return;
+  const checkAndUpdateStreak = async () => {
+    if (!auth.currentUser) return;
     
     try {
-      const allCompleted = currentTasks.every(task => task.isCompleted);
-      
+      const tasksSnapshot = await get(ref(database, `users/${auth.currentUser.uid}/tasks`));
+      if (!tasksSnapshot.exists()) return;
+
+      const allTasks = Object.values(tasksSnapshot.val()) as Task[];
+      const allCompleted = allTasks.every(task => task.isCompleted);
+
       if (allCompleted) {
-        const uid = auth.currentUser.uid;
-        const streakDocRef = doc(db, 'users', uid, 'streaks', 'current');
-        const streakDoc = await getDoc(streakDocRef);
+        const streakRef = ref(database, `users/${auth.currentUser.uid}/streak`);
+        const streakSnapshot = await get(streakRef);
         
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
         
-        if (streakDoc.exists()) {
-          const lastCompletedDate = streakDoc.data().lastCompletedDate?.toDate() || new Date(0);
+        let newStreak = 1;
+        if (streakSnapshot.exists()) {
+          const lastCompletedDate = new Date(streakSnapshot.val().lastCompletedDate);
           lastCompletedDate.setHours(0, 0, 0, 0);
           
-          const timeDiff = today.getTime() - lastCompletedDate.getTime();
+          const timeDiff = now.getTime() - lastCompletedDate.getTime();
           const daysDiff = timeDiff / (1000 * 3600 * 24);
           
-          let newStreak = streakDoc.data().currentStreak || 0;
-          
           if (daysDiff === 1) {
-            // Consecutive day, increment streak
-            newStreak += 1;
+            newStreak = (streakSnapshot.val().current || 0) + 1;
           } else if (daysDiff === 0) {
-            // Same day, don't change streak
-          } else {
-            // Streak broken
-            newStreak = 1;
+            newStreak = streakSnapshot.val().current || 1;
           }
-          
-          await updateDoc(streakDocRef, {
-            currentStreak: newStreak,
-            lastCompletedDate: today
-          });
-          
-          setCurrentStreak(newStreak);
-          
-          // Update user streak in user document
-          const userDocRef = doc(db, 'users', uid);
-          await updateDoc(userDocRef, {
-            currentStreak: newStreak
-          });
-          
-          setUser(prev => prev ? { ...prev, currentStreak: newStreak } : null);
-          
-          // Check for badge unlocks based on streak
-          const updatedBadges = [...badges];
-          if (newStreak >= 7 && !badges[0].earned) {
-            updatedBadges[0] = { ...updatedBadges[0], earned: true };
-          }
+        }
+
+        await set(streakRef, {
+          current: newStreak,
+          lastCompletedDate: now.toISOString()
+        });
+
+        setCurrentStreak(newStreak);
+        
+        // Update badges based on streak
+        if (newStreak >= 7) {
+          const updatedBadges = badges.map(badge => 
+            badge.id === '1' ? { ...badge, earned: true } : badge
+          );
           setBadges(updatedBadges);
-        } else {
-          // Create streak document if it doesn't exist
-          await setDoc(streakDocRef, {
-            currentStreak: 1,
-            lastCompletedDate: today
-          });
-          
-          setCurrentStreak(1);
-          
-          // Update user streak in user document
-          const userDocRef = doc(db, 'users', uid);
-          await updateDoc(userDocRef, {
-            currentStreak: 1
-          });
-          
-          setUser(prev => prev ? { ...prev, currentStreak: 1 } : null);
         }
       }
     } catch (error) {
@@ -365,97 +283,87 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   };
 
-  // Login with email/password
   const login = async (email: string, password: string) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('Logging in with:', email);
-      
-      // User data will be fetched by the auth state listener
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
     }
   };
 
-  // Register new user
   const register = async (email: string, password: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
       
-      // Create user document
-      const userDocRef = doc(db, 'users', uid);
-      await setDoc(userDocRef, {
+      const userRef = ref(database, `users/${uid}`);
+      await set(userRef, {
+        id: uid,
         email,
         points: 0,
-        currentStreak: 0
-      });
-      
-      // Create streak document
-      const streakDocRef = doc(db, 'users', uid, 'streaks', 'current');
-      await setDoc(streakDocRef, {
         currentStreak: 0,
-        lastCompletedDate: new Date()
+        createdAt: serverTimestamp()
       });
-      
-      // User data will be fetched by the auth state listener
+
+      const streakRef = ref(database, `users/${uid}/streak`);
+      await set(streakRef, {
+        current: 0,
+        lastCompletedDate: new Date().toISOString()
+      });
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;
     }
   };
 
-  // Login with Google
   const loginWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
-      console.log('Logging in with Google');
       
       const uid = userCredential.user.uid;
       const email = userCredential.user.email || '';
       
-      // Check if user document exists
-      const userDocRef = doc(db, 'users', uid);
-      const userDoc = await getDoc(userDocRef);
+      const userRef = ref(database, `users/${uid}`);
+      const userSnapshot = await get(userRef);
       
-      if (!userDoc.exists()) {
-        // Create user document
-        await setDoc(userDocRef, {
+      if (!userSnapshot.exists()) {
+        await set(userRef, {
+          id: uid,
           email,
           points: 0,
-          currentStreak: 0
-        });
-        
-        // Create streak document
-        const streakDocRef = doc(db, 'users', uid, 'streaks', 'current');
-        await setDoc(streakDocRef, {
           currentStreak: 0,
-          lastCompletedDate: new Date()
+          createdAt: serverTimestamp()
+        });
+
+        const streakRef = ref(database, `users/${uid}/streak`);
+        await set(streakRef, {
+          current: 0,
+          lastCompletedDate: new Date().toISOString()
         });
       }
-      
-      // User data will be fetched by the auth state listener
     } catch (error) {
       console.error('Google login failed:', error);
       throw error;
     }
   };
 
-  // Logout
   const logout = async () => {
     try {
+      if (auth.currentUser) {
+        const tasksRef = ref(database, `users/${auth.currentUser.uid}/tasks`);
+        off(tasksRef);
+      }
       await firebaseSignOut(auth);
-      // Reset states
-      setUser(null);
-      setIsLoggedIn(false);
-      setTasks([]);
-      setCurrentStreak(0);
     } catch (error) {
       console.error('Logout failed:', error);
       throw error;
     }
+  };
+
+  const getSuggestedTask = async () => {
+    return suggestTask(auth.currentUser?.uid);
   };
 
   return (
@@ -475,7 +383,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       login,
       register,
       logout,
-      loginWithGoogle
+      loginWithGoogle,
+      getSuggestedTask
     }}>
       {children}
     </AppContext.Provider>

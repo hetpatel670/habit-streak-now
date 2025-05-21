@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getDatabase } from 'firebase/database';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -9,12 +9,13 @@ const firebaseConfig = {
   projectId: "walkie-talkie-8cd3a",
   storageBucket: "walkie-talkie-8cd3a.appspot.com",
   messagingSenderId: "901629172992",
-  appId: "1:901629172992:web:905faa33965694430b27e5"
+  appId: "1:901629172992:web:905faa33965694430b27e5",
+  databaseURL: "https://walkie-talkie-8cd3a-default-rtdb.firebaseio.com"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const database = getDatabase(app);
 
-export { auth, db };
+export { auth, database };

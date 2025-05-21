@@ -1,4 +1,6 @@
 import { Task } from '@/types';
+import { database } from '@/config/firebase';
+import { ref, get } from 'firebase/database';
 
 interface OpenRouterResponse {
   choices: {
@@ -8,10 +10,8 @@ interface OpenRouterResponse {
   }[];
 }
 
-// Cache for storing previous suggestions
 const suggestionCache = new Set<string>();
 
-// Default suggestions if API fails
 const defaultSuggestions = [
   "Do 10 minutes of mindful breathing",
   "Take a 5-minute stretching break",
@@ -23,16 +23,26 @@ const defaultSuggestions = [
   "Practice good posture for 5 minutes"
 ];
 
-export const suggestTask = async (previousTasks: Task[] = []): Promise<string> => {
+export const suggestTask = async (userId?: string): Promise<string> => {
   try {
-    // Analyze previous tasks to make contextual suggestions
+    let previousTasks: Task[] = [];
+    
+    if (userId) {
+      const tasksRef = ref(database, `users/${userId}/tasks`);
+      const snapshot = await get(tasksRef);
+      if (snapshot.exists()) {
+        previousTasks = Object.values(snapshot.val());
+      }
+    }
+
     const taskTypes = previousTasks.reduce((acc, task) => {
       const type = categorizeTask(task.name);
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    const prompt = generateSmartPrompt(taskTypes);
+    const userPreferences = await getUserPreferences(userId);
+    const prompt = generateSmartPrompt(taskTypes, userPreferences);
 
     const response = await Promise.race([
       fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -44,21 +54,23 @@ export const suggestTask = async (previousTasks: Task[] = []): Promise<string> =
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "deepseek/deepseek-r1:free",
+          "model": "anthropic/claude-2:1",
           "messages": [
             {
               "role": "system",
-              "content": "You are a helpful task suggestion AI that provides quick, engaging, and achievable micro-tasks."
+              "content": "You are a highly engaging task suggestion AI that provides quick, personalized, and achievable micro-tasks. Focus on user's patterns and preferences."
             },
             {
               "role": "user",
               "content": prompt
             }
-          ]
+          ],
+          "temperature": 0.7,
+          "max_tokens": 50
         })
       }),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
+        setTimeout(() => reject(new Error('Timeout')), 2000)
       )
     ]);
 
@@ -70,7 +82,7 @@ export const suggestTask = async (previousTasks: Task[] = []): Promise<string> =
     const suggestion = data.choices[0]?.message?.content?.trim();
     
     if (!suggestion || suggestionCache.has(suggestion)) {
-      return getRandomUniqueTask();
+      return getRandomUniqueTask(userPreferences);
     }
     
     suggestionCache.add(suggestion);
@@ -81,12 +93,27 @@ export const suggestTask = async (previousTasks: Task[] = []): Promise<string> =
   }
 };
 
+async function getUserPreferences(userId?: string): Promise<any> {
+  if (!userId) return {};
+  
+  try {
+    const prefsRef = ref(database, `users/${userId}/preferences`);
+    const snapshot = await get(prefsRef);
+    return snapshot.exists() ? snapshot.val() : {};
+  } catch (error) {
+    console.error("Error fetching user preferences:", error);
+    return {};
+  }
+}
+
 function categorizeTask(taskName: string): string {
   const categories = {
-    health: ['exercise', 'stretch', 'walk', 'workout', 'yoga'],
-    mindfulness: ['meditate', 'breathe', 'relax', 'mindful'],
-    productivity: ['work', 'study', 'read', 'write', 'plan'],
-    wellbeing: ['water', 'sleep', 'rest', 'break']
+    health: ['exercise', 'stretch', 'walk', 'workout', 'yoga', 'water', 'sleep'],
+    mindfulness: ['meditate', 'breathe', 'relax', 'mindful', 'gratitude'],
+    productivity: ['work', 'study', 'read', 'write', 'plan', 'organize'],
+    creativity: ['draw', 'paint', 'music', 'write', 'create'],
+    social: ['call', 'message', 'connect', 'share', 'help'],
+    learning: ['learn', 'study', 'practice', 'research', 'explore']
   };
 
   const lowercaseTask = taskName.toLowerCase();
@@ -98,19 +125,38 @@ function categorizeTask(taskName: string): string {
   return 'other';
 }
 
-function generateSmartPrompt(taskTypes: Record<string, number>): string {
+function generateSmartPrompt(taskTypes: Record<string, number>, userPreferences: any): string {
   const mostFrequentCategory = Object.entries(taskTypes)
     .sort(([,a], [,b]) => b - a)[0]?.[0];
 
-  return `Suggest a simple daily task for habit-building related to ${mostFrequentCategory || 'general wellness'}. Task should be specific, achievable in under 5 minutes, and motivating. Just provide the task name only.`;
+  const timeOfDay = new Date().getHours();
+  const timeContext = timeOfDay < 12 ? 'morning' : 
+                     timeOfDay < 17 ? 'afternoon' : 'evening';
+
+  const preferredDuration = userPreferences.preferredDuration || '5 minutes';
+  const interests = userPreferences.interests || [];
+
+  return `Suggest a quick ${preferredDuration} task for ${timeContext} related to ${mostFrequentCategory || 'wellness'}${
+    interests.length ? ` considering interests in ${interests.join(', ')}` : ''
+  }. Task should be specific, achievable, and motivating. Provide only the task name.`;
 }
 
-function getRandomUniqueTask(): string {
-  const availableTasks = defaultSuggestions.filter(task => !suggestionCache.has(task));
+function getRandomUniqueTask(userPreferences?: any): string {
+  let availableTasks = defaultSuggestions.filter(task => !suggestionCache.has(task));
+  
+  if (userPreferences?.preferredCategories?.length) {
+    availableTasks = availableTasks.filter(task => 
+      userPreferences.preferredCategories.some((category: string) => 
+        task.toLowerCase().includes(category.toLowerCase())
+      )
+    );
+  }
+
   if (availableTasks.length === 0) {
     suggestionCache.clear();
     return defaultSuggestions[Math.floor(Math.random() * defaultSuggestions.length)];
   }
+
   const task = availableTasks[Math.floor(Math.random() * availableTasks.length)];
   suggestionCache.add(task);
   return task;
