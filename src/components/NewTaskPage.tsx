@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAppContext } from '@/context/AppContext';
 import { ChevronLeft } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface NewTaskPageProps {
   onBack: () => void;
@@ -13,30 +14,70 @@ const NewTaskPage = ({ onBack }: NewTaskPageProps) => {
   const [name, setName] = useState('');
   const [frequency, setFrequency] = useState('daily');
   const [reminderTime, setReminderTime] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
   const { addTask } = useAppContext();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    addTask({
-      name,
-      frequency,
-      reminderTime,
-      isCompleted: false
-    });
-    onBack();
+    
+    if (!name.trim()) {
+      toast({
+        title: "Task name required",
+        description: "Please enter a task name",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await addTask({
+        name,
+        frequency,
+        reminderTime,
+        isCompleted: false
+      });
+      
+      toast({
+        title: "Task added",
+        description: "Your new task has been added successfully!",
+      });
+      
+      onBack();
+    } catch (error: any) {
+      console.error('Error adding task:', error);
+      toast({
+        title: "Failed to add task",
+        description: error.message || "An error occurred while adding the task",
+        variant: "destructive",
+      });
+    }
   };
   
-  const suggestTask = () => {
-    // Mock task suggestion - in real app this would call OpenRouter API
-    const suggestions = [
-      "Meditate for 5 minutes",
-      "Write in journal",
-      "Review goals for the day",
-      "Take a short walk",
-      "Do 10 pushups"
-    ];
-    setName(suggestions[Math.floor(Math.random() * suggestions.length)]);
+  const suggestTask = async () => {
+    setIsLoading(true);
+    
+    try {
+      // For now, use mock suggestions instead of calling OpenRouter API
+      const suggestions = [
+        "Meditate for 5 minutes",
+        "Write in journal",
+        "Review goals for the day",
+        "Take a short walk",
+        "Do 10 pushups"
+      ];
+      setName(suggestions[Math.floor(Math.random() * suggestions.length)]);
+    } catch (error) {
+      console.error('Error suggesting task:', error);
+      toast({
+        title: "Suggestion failed",
+        description: "Failed to get task suggestion. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -68,12 +109,16 @@ const NewTaskPage = ({ onBack }: NewTaskPageProps) => {
         <div>
           <label className="block text-gray-400 mb-2">Frequency</label>
           <div className="relative">
-            <Input
+            <select
               value={frequency}
               onChange={(e) => setFrequency(e.target.value)}
-              placeholder="daily"
-              className="h-14 bg-app-lightblue border-none text-white rounded-lg"
-            />
+              className="h-14 w-full bg-app-lightblue border-none text-white rounded-lg px-3 appearance-none"
+            >
+              <option value="daily">Daily</option>
+              <option value="mon-wed-fri">Monday, Wednesday, Friday</option>
+              <option value="every-3-hours">Every 3 hours</option>
+              <option value="weekly">Weekly</option>
+            </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
               <ChevronLeft size={20} className="rotate-180 text-gray-400" />
             </div>
@@ -97,8 +142,9 @@ const NewTaskPage = ({ onBack }: NewTaskPageProps) => {
           variant="secondary"
           className="h-14 mt-4 rounded-lg bg-indigo-600 text-white"
           onClick={suggestTask}
+          disabled={isLoading}
         >
-          Suggest Task
+          {isLoading ? "Suggesting..." : "Suggest Task"}
         </Button>
 
         <div className="mt-auto">

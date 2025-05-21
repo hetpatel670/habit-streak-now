@@ -3,18 +3,47 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAppContext } from '@/context/AppContext';
+import { useToast } from '@/hooks/use-toast';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
   const { login, loginWithGoogle } = useAppContext();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await login(email, password);
-    } catch (error) {
+      toast({
+        title: "Success",
+        description: "You have been logged in successfully!",
+      });
+    } catch (error: any) {
       console.error('Login failed:', error);
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+      toast({
+        title: "Success",
+        description: "You have been logged in with Google successfully!",
+      });
+    } catch (error: any) {
+      console.error('Google login failed:', error);
+      toast({
+        title: "Google login failed",
+        description: error.message || "An error occurred during Google login",
+        variant: "destructive",
+      });
     }
   };
 
@@ -69,7 +98,7 @@ const LoginPage = () => {
         </div>
 
         <Button
-          onClick={loginWithGoogle}
+          onClick={handleGoogleLogin}
           className="w-full h-14 bg-app-lightblue hover:bg-app-lightblue/90 text-white flex items-center justify-center gap-3 rounded-lg shadow-lg"
         >
           <svg viewBox="0 0 48 48" className="w-6 h-6">

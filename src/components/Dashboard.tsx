@@ -1,9 +1,13 @@
 
 import React from 'react';
 import { useAppContext } from '@/context/AppContext';
+import { Button } from '@/components/ui/button';
+import { LogOut } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
-  const { currentStreak, badges, completedTasksPercentage } = useAppContext();
+  const { currentStreak, badges, completedTasksPercentage, user, logout } = useAppContext();
+  const { toast } = useToast();
 
   // Mock weekly data - in a real app, this would come from Firestore
   const weeklyData = [
@@ -15,11 +19,42 @@ const Dashboard = () => {
     { day: 'S', height: 85 },
   ];
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+    } catch (error: any) {
+      console.error('Logout failed:', error);
+      toast({
+        title: "Logout failed",
+        description: error.message || "An error occurred during logout",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="p-4 flex flex-col h-full">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Dashboard</h2>
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={handleLogout}
+          className="text-gray-400 hover:text-white"
+        >
+          <LogOut size={20} />
+        </Button>
       </div>
+
+      {user && (
+        <div className="mt-4 text-white">
+          <p>{user.email}</p>
+        </div>
+      )}
 
       <div className="mt-6 bg-app-lightblue p-4 rounded-lg">
         <div className="flex items-center mb-2">
@@ -50,7 +85,12 @@ const Dashboard = () => {
 
       <div className="mt-6 grid grid-cols-3 gap-4">
         {badges.map((badge) => (
-          <div key={badge.id} className="bg-app-lightblue rounded-lg p-3 flex flex-col items-center">
+          <div 
+            key={badge.id} 
+            className={`bg-app-lightblue rounded-lg p-3 flex flex-col items-center ${
+              badge.earned ? '' : 'opacity-50'
+            }`}
+          >
             <div className="text-3xl mb-1">{badge.icon}</div>
             <div className="text-xs text-center text-white">{badge.name}</div>
           </div>

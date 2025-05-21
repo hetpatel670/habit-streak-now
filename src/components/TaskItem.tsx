@@ -36,6 +36,12 @@ const TaskItem = ({ task }: TaskItemProps) => {
         {task.frequency === 'every-3-hours' && (
           <p className="text-sm text-gray-400">every 3 hours</p>
         )}
+        {task.frequency === 'mon-wed-fri' && (
+          <p className="text-sm text-gray-400">Monday, Wednesday, Friday</p>
+        )}
+        {task.frequency === 'weekly' && (
+          <p className="text-sm text-gray-400">Weekly</p>
+        )}
       </div>
       {task.reminderTime && (
         <div className="text-gray-400 text-sm">
