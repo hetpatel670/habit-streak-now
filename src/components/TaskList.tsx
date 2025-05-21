@@ -1,12 +1,15 @@
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import TaskItem from './TaskItem';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/context/AppContext';
 import { Plus } from 'lucide-react';
+import { FixedSizeList as List } from 'react-window';
 
 const TaskList = () => {
   const { tasks, user, currentStreak, setActiveTab } = useAppContext();
+  const [listHeight, setListHeight] = useState(400);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Memoize the sorted tasks to prevent unnecessary re-renders
   const sortedTasks = useMemo(() => {
@@ -25,6 +28,30 @@ const TaskList = () => {
   const handleAddTaskClick = useCallback(() => {
     setActiveTab('add');
   }, [setActiveTab]);
+  
+  // Calculate the available height for the list
+  useEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        const containerHeight = containerRef.current.clientHeight;
+        setListHeight(containerHeight - 20); // Subtract padding
+      }
+    };
+    
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
+  
+  // Render each task item in the virtualized list
+  const renderTask = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const task = sortedTasks[index];
+    return (
+      <div style={style}>
+        <TaskItem key={task.id} task={task} />
+      </div>
+    );
+  }, [sortedTasks]);
 
   return (
     <div className="p-4 sm:p-6 flex flex-col h-full">
@@ -47,13 +74,21 @@ const TaskList = () => {
         <Plus className="mr-2" size={18} /> Add Task
       </Button>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
+      <div 
+        ref={containerRef} 
+        className="flex-1 overflow-hidden pb-20"
+        aria-label="Your tasks"
+      >
         {sortedTasks.length > 0 ? (
-          <div role="list" aria-label="Your tasks" className="space-y-2 sm:space-y-3">
-            {sortedTasks.map(task => (
-              <TaskItem key={task.id} task={task} />
-            ))}
-          </div>
+          <List
+            height={listHeight}
+            width="100%"
+            itemCount={sortedTasks.length}
+            itemSize={80} // Adjust based on your TaskItem height
+            overscanCount={3} // Pre-render items for smoother scrolling
+          >
+            {renderTask}
+          </List>
         ) : (
           <div className="text-center text-gray-400 mt-10 p-4">
             <p className="text-sm sm:text-base">No tasks yet. Add a new task to get started!</p>

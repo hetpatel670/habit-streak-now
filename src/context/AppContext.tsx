@@ -22,7 +22,7 @@ import {
   where,
   Firestore
 } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { getFirebaseAuth, getFirebaseFirestore } from '../config/firebase';
 
 interface AppContextType {
   tasks: Task[];
@@ -76,6 +76,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   // Firebase auth state listener
   useEffect(() => {
+    const auth = getFirebaseAuth();
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userData = await fetchUserData(firebaseUser.uid);
@@ -97,6 +98,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   // Fetch user data from Firestore
   const fetchUserData = async (uid: string): Promise<User> => {
     try {
+      const db = getFirebaseFirestore();
+      const auth = getFirebaseAuth();
       const userDocRef = doc(db, 'users', uid);
       const userDoc = await getDoc(userDocRef);
       
@@ -120,6 +123,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
+      const auth = getFirebaseAuth();
       return {
         id: uid,
         email: auth.currentUser?.email || '',
@@ -132,6 +136,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   // Fetch user tasks from Firestore
   const fetchUserTasks = async (uid: string) => {
     try {
+      const db = getFirebaseFirestore();
       const tasksCollectionRef = collection(db, 'users', uid, 'tasks');
       const tasksSnapshot = await getDocs(tasksCollectionRef);
       const tasksList: Task[] = [];
@@ -159,6 +164,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   // Fetch user streak from Firestore
   const fetchUserStreak = async (uid: string) => {
     try {
+      const db = getFirebaseFirestore();
       const streakDocRef = doc(db, 'users', uid, 'streaks', 'current');
       const streakDoc = await getDoc(streakDocRef);
       
@@ -177,9 +183,11 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   // Add a new task
   const addTask = async (task: Omit<Task, 'id'>) => {
+    const auth = getFirebaseAuth();
     if (!auth.currentUser) return;
     
     try {
+      const db = getFirebaseFirestore();
       const uid = auth.currentUser.uid;
       const tasksCollectionRef = collection(db, 'users', uid, 'tasks');
       const newTaskRef = doc(tasksCollectionRef);
@@ -198,9 +206,11 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   // Complete a task
   const completeTask = async (id: string) => {
+    const auth = getFirebaseAuth();
     if (!auth.currentUser) return;
     
     try {
+      const db = getFirebaseFirestore();
       const uid = auth.currentUser.uid;
       const taskDocRef = doc(db, 'users', uid, 'tasks', id);
       
@@ -266,9 +276,11 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   // Delete a task
   const deleteTask = async (id: string) => {
+    const auth = getFirebaseAuth();
     if (!auth.currentUser) return;
     
     try {
+      const db = getFirebaseFirestore();
       const uid = auth.currentUser.uid;
       const taskDocRef = doc(db, 'users', uid, 'tasks', id);
       
@@ -292,12 +304,14 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   // Check and update streak
   const checkAndUpdateStreak = async (currentTasks: Task[]) => {
+    const auth = getFirebaseAuth();
     if (!auth.currentUser || currentTasks.length === 0) return;
     
     try {
       const allCompleted = currentTasks.every(task => task.isCompleted);
       
       if (allCompleted) {
+        const db = getFirebaseFirestore();
         const uid = auth.currentUser.uid;
         const streakDocRef = doc(db, 'users', uid, 'streaks', 'current');
         const streakDoc = await getDoc(streakDocRef);
@@ -371,6 +385,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   // Login with email/password
   const login = async (email: string, password: string) => {
     try {
+      const auth = getFirebaseAuth();
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Logging in with:', email);
       
@@ -384,10 +399,12 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   // Register new user
   const register = async (email: string, password: string) => {
     try {
+      const auth = getFirebaseAuth();
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
       
       // Create user document
+      const db = getFirebaseFirestore();
       const userDocRef = doc(db, 'users', uid);
       await setDoc(userDocRef, {
         email,
@@ -412,6 +429,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   // Login with Google
   const loginWithGoogle = async () => {
     try {
+      const auth = getFirebaseAuth();
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
       console.log('Logging in with Google');
@@ -420,6 +438,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       const email = userCredential.user.email || '';
       
       // Check if user document exists
+      const db = getFirebaseFirestore();
       const userDocRef = doc(db, 'users', uid);
       const userDoc = await getDoc(userDocRef);
       
@@ -449,6 +468,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   // Logout
   const logout = async () => {
     try {
+      const auth = getFirebaseAuth();
       await firebaseSignOut(auth);
       // Reset states
       setUser(null);
