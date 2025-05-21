@@ -76,23 +76,33 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   // Firebase auth state listener
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userData = await fetchUserData(firebaseUser.uid);
-        setUser(userData);
-        setIsLoggedIn(true);
-        fetchUserTasks(firebaseUser.uid);
-        fetchUserStreak(firebaseUser.uid);
-      } else {
-        setUser(null);
-        setIsLoggedIn(false);
-        setTasks([]);
-        setCurrentStreak(0);
-      }
-    });
+    try {
+      const auth = getFirebaseAuth();
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          try {
+            const userData = await fetchUserData(firebaseUser.uid);
+            setUser(userData);
+            setIsLoggedIn(true);
+            await fetchUserTasks(firebaseUser.uid);
+            await fetchUserStreak(firebaseUser.uid);
+          } catch (error) {
+            console.error('Error in auth state listener:', error);
+            setUser(null);
+            setIsLoggedIn(false);
+          }
+        } else {
+          setUser(null);
+          setIsLoggedIn(false);
+          setTasks([]);
+          setCurrentStreak(0);
+        }
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up auth listener:', error);
+    }
   }, []);
 
   // Fetch user data from Firestore

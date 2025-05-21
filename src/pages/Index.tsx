@@ -16,6 +16,9 @@ const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 const AppContent = () => {
   const { isLoggedIn, activeTab, setActiveTab, showOnboarding } = useAppContext();
 
+  // Add console log for debugging
+  console.log('AppContent rendering, isLoggedIn:', isLoggedIn);
+
   if (!isLoggedIn) {
     return (
       <Suspense fallback={<LoadingSpinner />}>
