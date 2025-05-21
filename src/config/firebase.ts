@@ -21,21 +21,42 @@ let db: Firestore;
 // Initialize Firebase only when needed
 const getFirebaseApp = (): FirebaseApp => {
   if (!app) {
-    app = initializeApp(firebaseConfig);
+    console.log("Initializing Firebase app");
+    try {
+      app = initializeApp(firebaseConfig);
+      console.log("Firebase app initialized successfully");
+    } catch (error) {
+      console.error("Error initializing Firebase app:", error);
+      throw error;
+    }
   }
   return app;
 };
 
 const getFirebaseAuth = (): Auth => {
   if (!auth) {
-    auth = getAuth(getFirebaseApp());
+    console.log("Initializing Firebase auth");
+    try {
+      auth = getAuth(getFirebaseApp());
+      console.log("Firebase auth initialized successfully");
+    } catch (error) {
+      console.error("Error initializing Firebase auth:", error);
+      throw error;
+    }
   }
   return auth;
 };
 
 const getFirebaseFirestore = (): Firestore => {
   if (!db) {
-    db = getFirestore(getFirebaseApp());
+    console.log("Initializing Firebase firestore");
+    try {
+      db = getFirestore(getFirebaseApp());
+      console.log("Firebase firestore initialized successfully");
+    } catch (error) {
+      console.error("Error initializing Firebase firestore:", error);
+      throw error;
+    }
   }
   return db;
 };

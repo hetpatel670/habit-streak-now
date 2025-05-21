@@ -17,6 +17,16 @@ export default defineConfig(({ mode }) => ({
       host: "work-1-kdeevydjkhmevlto.prod-runtime.all-hands.dev",
     },
     strictPort: true,
+    watch: {
+      usePolling: true,
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:12000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    },
   },
   plugins: [
     react(),
