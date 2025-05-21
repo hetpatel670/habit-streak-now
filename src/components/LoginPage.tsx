@@ -9,21 +9,29 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
-  const { login, loginWithGoogle } = useAppContext();
+  const { login, loginWithGoogle, register } = useAppContext();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(email, password);
-      toast({
-        title: "Success",
-        description: "You have been logged in successfully!",
-      });
+      if (isRegistering) {
+        await register(email, password);
+        toast({
+          title: "Success",
+          description: "Your account has been created successfully!",
+        });
+      } else {
+        await login(email, password);
+        toast({
+          title: "Success",
+          description: "You have been logged in successfully!",
+        });
+      }
     } catch (error: any) {
-      console.error('Login failed:', error);
+      console.error(isRegistering ? 'Registration failed:' : 'Login failed:', error);
       toast({
-        title: "Login failed",
+        title: isRegistering ? "Registration failed" : "Login failed",
         description: error.message || "Please check your credentials and try again",
         variant: "destructive",
       });
@@ -62,6 +70,23 @@ const LoginPage = () => {
           <h1 className="text-4xl font-bold text-white">Task Planner</h1>
         </div>
         
+        <div className="flex w-full mb-6">
+          <button
+            type="button"
+            onClick={() => setIsRegistering(false)}
+            className={`flex-1 py-2 text-center font-medium ${!isRegistering ? 'text-app-teal border-b-2 border-app-teal' : 'text-white border-b-2 border-transparent'}`}
+          >
+            Login
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsRegistering(true)}
+            className={`flex-1 py-2 text-center font-medium ${isRegistering ? 'text-app-teal border-b-2 border-app-teal' : 'text-white border-b-2 border-transparent'}`}
+          >
+            Register
+          </button>
+        </div>
+        
         <form onSubmit={handleSubmit} className="w-full space-y-4">
           <div>
             <Input
@@ -87,7 +112,7 @@ const LoginPage = () => {
             type="submit"
             className="w-full h-14 bg-app-teal hover:bg-app-teal/90 text-black text-lg font-bold rounded-lg shadow-lg"
           >
-            Log in
+            {isRegistering ? 'Create Account' : 'Log in'}
           </Button>
         </form>
 
