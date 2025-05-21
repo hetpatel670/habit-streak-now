@@ -82,22 +82,34 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       const auth = getFirebaseAuth();
       
       // Initialize Firebase auth with persistence
+      console.log("Setting up Firebase auth persistence");
       auth.setPersistence(browserLocalPersistence)
+        .then(() => {
+          console.log("Firebase auth persistence set successfully");
+        })
         .catch(error => {
           console.error("Error setting auth persistence:", error);
         });
       
+      console.log("Setting up auth state change listener");
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        console.log("Auth state changed:", firebaseUser ? "User logged in" : "No user");
+        console.log("Auth state changed:", firebaseUser ? `User logged in: ${firebaseUser.uid}` : "No user");
         
         if (firebaseUser) {
           try {
             console.log("Fetching user data for:", firebaseUser.uid);
             const userData = await fetchUserData(firebaseUser.uid);
+            console.log("User data fetched successfully:", userData);
             setUser(userData);
             setIsLoggedIn(true);
+            
+            console.log("Fetching user tasks");
             await fetchUserTasks(firebaseUser.uid);
+            
+            console.log("Fetching user streak");
             await fetchUserStreak(firebaseUser.uid);
+            
+            console.log("All user data loaded successfully");
           } catch (error) {
             console.error('Error in auth state listener:', error);
             setUser(null);
@@ -112,7 +124,11 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         }
       });
 
-      return () => unsubscribe();
+      console.log("Auth state listener setup complete");
+      return () => {
+        console.log("Cleaning up auth state listener");
+        unsubscribe();
+      };
     } catch (error) {
       console.error('Error setting up auth listener:', error);
     }
