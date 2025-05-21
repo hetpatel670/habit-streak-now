@@ -51,11 +51,22 @@ const LoginPage = () => {
       });
     } catch (error: any) {
       console.error('Google login failed:', error);
-      toast({
-        title: "Google login failed",
-        description: "Please ensure pop-ups are enabled and try again",
-        variant: "destructive",
-      });
+      
+      // Check specifically for popup blocked error
+      if (error.code === 'auth/popup-blocked') {
+        toast({
+          title: "Popup Blocked",
+          description: "Please allow popups for this site to sign in with Google. Look for the popup blocker icon in your browser's address bar.",
+          variant: "destructive",
+          duration: 6000,
+        });
+      } else {
+        toast({
+          title: "Google login failed",
+          description: "Please ensure popups are enabled and try again. If the issue persists, try using email login.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
