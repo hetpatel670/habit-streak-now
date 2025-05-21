@@ -246,9 +246,11 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   // Uncomplete a task
   const uncompleteTask = async (id: string) => {
+    const auth = getFirebaseAuth();
     if (!auth.currentUser) return;
     
     try {
+      const db = getFirebaseFirestore();
       const uid = auth.currentUser.uid;
       const taskDocRef = doc(db, 'users', uid, 'tasks', id);
       
