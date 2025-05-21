@@ -13,8 +13,11 @@ export interface Task {
 export interface User {
   id: string;
   email: string;
+  displayName?: string;
+  photoURL?: string;
   points: number;
   currentStreak: number;
+  onboardingComplete?: boolean;
 }
 
 // Define the Badge interface

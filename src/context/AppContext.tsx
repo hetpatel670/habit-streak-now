@@ -77,61 +77,89 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   // Firebase auth state listener
   useEffect(() => {
-    try {
-      console.log("Setting up Firebase auth listener");
-      const auth = getFirebaseAuth();
-      
-      // Initialize Firebase auth with persistence
-      console.log("Setting up Firebase auth persistence");
-      auth.setPersistence(browserLocalPersistence)
-        .then(() => {
-          console.log("Firebase auth persistence set successfully");
-        })
-        .catch(error => {
-          console.error("Error setting auth persistence:", error);
-        });
-      
-      console.log("Setting up auth state change listener");
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        console.log("Auth state changed:", firebaseUser ? `User logged in: ${firebaseUser.uid}` : "No user");
+    let unsubscribe: () => void = () => {};
+    
+    const setupAuth = async () => {
+      try {
+        console.log("Setting up Firebase auth listener");
+        const auth = getFirebaseAuth();
         
-        if (firebaseUser) {
-          try {
-            console.log("Fetching user data for:", firebaseUser.uid);
-            const userData = await fetchUserData(firebaseUser.uid);
-            console.log("User data fetched successfully:", userData);
-            setUser(userData);
-            setIsLoggedIn(true);
-            
-            console.log("Fetching user tasks");
-            await fetchUserTasks(firebaseUser.uid);
-            
-            console.log("Fetching user streak");
-            await fetchUserStreak(firebaseUser.uid);
-            
-            console.log("All user data loaded successfully");
-          } catch (error) {
-            console.error('Error in auth state listener:', error);
+        // Initialize Firebase auth with persistence first
+        try {
+          console.log("Setting up Firebase auth persistence");
+          await auth.setPersistence(browserLocalPersistence);
+          console.log("Firebase auth persistence set successfully");
+        } catch (error) {
+          console.error("Error setting auth persistence:", error);
+        }
+        
+        // Then set up the auth state listener
+        console.log("Setting up auth state change listener");
+        unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          console.log("Auth state changed:", firebaseUser ? `User logged in: ${firebaseUser.uid}` : "No user");
+          
+          if (firebaseUser) {
+            try {
+              console.log("Fetching user data for:", firebaseUser.uid);
+              const userData = await fetchUserData(firebaseUser.uid);
+              console.log("User data fetched successfully:", userData ? "User exists" : "New user");
+              
+              // Create a basic user object with the Firebase user info
+              const userObj = {
+                id: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                displayName: firebaseUser.displayName || '',
+                photoURL: firebaseUser.photoURL || '',
+                points: userData?.points || 0,
+                currentStreak: userData?.currentStreak || 0
+              };
+              
+              setUser(userObj);
+              setIsLoggedIn(true);
+              
+              console.log("Fetching user tasks");
+              await fetchUserTasks(firebaseUser.uid);
+              
+              console.log("Fetching user streak");
+              await fetchUserStreak(firebaseUser.uid);
+              
+              console.log("All user data loaded successfully");
+            } catch (error) {
+              console.error('Error in auth state listener:', error);
+              // Don't reset login state on error fetching user data
+              // Just create a basic user object with the Firebase user info
+              const userObj = {
+                id: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                displayName: firebaseUser.displayName || '',
+                photoURL: firebaseUser.photoURL || '',
+                points: 0,
+                currentStreak: 0
+              };
+              setUser(userObj);
+              setIsLoggedIn(true);
+            }
+          } else {
+            console.log("No user logged in, resetting state");
             setUser(null);
             setIsLoggedIn(false);
+            setTasks([]);
+            setCurrentStreak(0);
           }
-        } else {
-          console.log("No user logged in, resetting state");
-          setUser(null);
-          setIsLoggedIn(false);
-          setTasks([]);
-          setCurrentStreak(0);
-        }
-      });
-
-      console.log("Auth state listener setup complete");
-      return () => {
-        console.log("Cleaning up auth state listener");
-        unsubscribe();
-      };
-    } catch (error) {
-      console.error('Error setting up auth listener:', error);
-    }
+        });
+        
+        console.log("Auth state listener setup complete");
+      } catch (error) {
+        console.error('Error setting up auth listener:', error);
+      }
+    };
+    
+    setupAuth();
+    
+    return () => {
+      console.log("Cleaning up auth state listener");
+      unsubscribe();
+    };
   }, []);
 
   // Fetch user data from Firestore
