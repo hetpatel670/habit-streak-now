@@ -32,7 +32,9 @@ interface AppContextType {
   currentStreak: number;
   completedTasksPercentage: number;
   activeTab: string;
+  showOnboarding: boolean;
   setActiveTab: (tab: string) => void;
+  setOnboardingComplete: (complete: boolean) => void;
   addTask: (task: Omit<Task, 'id'>) => void;
   completeTask: (id: string) => void;
   uncompleteTask: (id: string) => void;
@@ -64,6 +66,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [completedTasksPercentage, setCompletedTasksPercentage] = useState(0);
   const [activeTab, setActiveTab] = useState('home');
+  const [showOnboarding, setShowOnboarding] = useState(true);
   
   const [badges, setBadges] = useState<Badge[]>([
     { id: '1', name: 'Hydration Hero', icon: '💧', description: 'Complete water drinking tasks 7 days in a row', earned: false },
@@ -458,6 +461,24 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   };
 
+  // Function to set onboarding as complete
+  const setOnboardingComplete = (complete: boolean) => {
+    setShowOnboarding(!complete);
+    
+    // Store onboarding status in localStorage to persist across sessions
+    if (complete) {
+      localStorage.setItem('onboardingComplete', 'true');
+    }
+  };
+
+  // Check localStorage for onboarding status on initial load
+  useEffect(() => {
+    const onboardingComplete = localStorage.getItem('onboardingComplete');
+    if (onboardingComplete === 'true') {
+      setShowOnboarding(false);
+    }
+  }, []);
+
   return (
     <AppContext.Provider value={{
       tasks,
@@ -467,7 +488,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       currentStreak,
       completedTasksPercentage,
       activeTab,
+      showOnboarding,
       setActiveTab,
+      setOnboardingComplete,
       addTask,
       completeTask,
       uncompleteTask,
