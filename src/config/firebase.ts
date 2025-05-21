@@ -1,7 +1,7 @@
 
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { FirebaseApp, initializeApp } from 'firebase/app';
+import { Auth, getAuth } from 'firebase/auth';
+import { Firestore, getFirestore } from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -13,9 +13,31 @@ const firebaseConfig = {
   appId: "1:901629172992:web:905faa33965694430b27e5"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Lazy initialize Firebase
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
-export { auth, db };
+// Initialize Firebase only when needed
+const getFirebaseApp = (): FirebaseApp => {
+  if (!app) {
+    app = initializeApp(firebaseConfig);
+  }
+  return app;
+};
+
+const getFirebaseAuth = (): Auth => {
+  if (!auth) {
+    auth = getAuth(getFirebaseApp());
+  }
+  return auth;
+};
+
+const getFirebaseFirestore = (): Firestore => {
+  if (!db) {
+    db = getFirestore(getFirebaseApp());
+  }
+  return db;
+};
+
+export { getFirebaseApp, getFirebaseAuth, getFirebaseFirestore };
