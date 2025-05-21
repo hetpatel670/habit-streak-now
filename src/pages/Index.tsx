@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { AppProvider } from '@/context/AppContext';
 import LoginPage from '@/components/LoginPage';
 import TaskList from '@/components/TaskList';
@@ -9,8 +9,7 @@ import Navigation from '@/components/Navigation';
 import { useAppContext } from '@/context/AppContext';
 
 const AppContent = () => {
-  const { isLoggedIn } = useAppContext();
-  const [activeTab, setActiveTab] = useState('home');
+  const { isLoggedIn, activeTab, setActiveTab } = useAppContext();
 
   if (!isLoggedIn) {
     return <LoginPage />;

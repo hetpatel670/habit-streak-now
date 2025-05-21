@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Task, User, Badge } from '../types';
 import { 
@@ -32,6 +31,8 @@ interface AppContextType {
   isLoggedIn: boolean;
   currentStreak: number;
   completedTasksPercentage: number;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
   addTask: (task: Omit<Task, 'id'>) => void;
   completeTask: (id: string) => void;
   uncompleteTask: (id: string) => void;
@@ -62,6 +63,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [completedTasksPercentage, setCompletedTasksPercentage] = useState(0);
+  const [activeTab, setActiveTab] = useState('home');
   
   const [badges, setBadges] = useState<Badge[]>([
     { id: '1', name: 'Hydration Hero', icon: '💧', description: 'Complete water drinking tasks 7 days in a row', earned: false },
@@ -464,6 +466,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       isLoggedIn,
       currentStreak,
       completedTasksPercentage,
+      activeTab,
+      setActiveTab,
       addTask,
       completeTask,
       uncompleteTask,

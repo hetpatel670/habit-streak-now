@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useAppContext } from '@/context/AppContext';
 import { ChevronLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { suggestTask } from '@/utils/openRouterApi';
 
 interface NewTaskPageProps {
   onBack: () => void;
@@ -55,19 +56,18 @@ const NewTaskPage = ({ onBack }: NewTaskPageProps) => {
     }
   };
   
-  const suggestTask = async () => {
+  const handleSuggestTask = async () => {
     setIsLoading(true);
     
     try {
-      // For now, use mock suggestions instead of calling OpenRouter API
-      const suggestions = [
-        "Meditate for 5 minutes",
-        "Write in journal",
-        "Review goals for the day",
-        "Take a short walk",
-        "Do 10 pushups"
-      ];
-      setName(suggestions[Math.floor(Math.random() * suggestions.length)]);
+      // Call the OpenRouter API for task suggestions
+      const suggestion = await suggestTask();
+      setName(suggestion);
+      
+      toast({
+        title: "Task suggested",
+        description: "A new task has been suggested for you!",
+      });
     } catch (error) {
       console.error('Error suggesting task:', error);
       toast({
@@ -75,6 +75,16 @@ const NewTaskPage = ({ onBack }: NewTaskPageProps) => {
         description: "Failed to get task suggestion. Please try again.",
         variant: "destructive",
       });
+      
+      // Fallback to some predefined suggestions
+      const fallbackSuggestions = [
+        "Meditate for 5 minutes",
+        "Write in journal",
+        "Review goals for the day",
+        "Take a short walk",
+        "Do 10 pushups"
+      ];
+      setName(fallbackSuggestions[Math.floor(Math.random() * fallbackSuggestions.length)]);
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +151,7 @@ const NewTaskPage = ({ onBack }: NewTaskPageProps) => {
           type="button"
           variant="secondary"
           className="h-14 mt-4 rounded-lg bg-indigo-600 text-white"
-          onClick={suggestTask}
+          onClick={handleSuggestTask}
           disabled={isLoading}
         >
           {isLoading ? "Suggesting..." : "Suggest Task"}
