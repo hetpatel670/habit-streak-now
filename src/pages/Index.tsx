@@ -1,50 +1,54 @@
 
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { AppProvider } from '@/context/AppContext';
 import Navigation from '@/components/Navigation';
 import { useAppContext } from '@/context/AppContext';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
-// Lazy load components to improve initial load time
-const LoginPage = lazy(() => import('@/components/LoginPage'));
-const TaskList = lazy(() => import('@/components/TaskList'));
-const NewTaskPage = lazy(() => import('@/components/NewTaskPage'));
-const Dashboard = lazy(() => import('@/components/Dashboard'));
-const Onboarding = lazy(() => import('@/components/Onboarding'));
-const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
+// Import components directly instead of lazy loading to avoid blank screen issues
+import LoginPage from '@/components/LoginPage';
+import TaskList from '@/components/TaskList';
+import NewTaskPage from '@/components/NewTaskPage';
+import Dashboard from '@/components/Dashboard';
+import Onboarding from '@/components/Onboarding';
+import ProfilePage from '@/pages/ProfilePage';
 
 const AppContent = () => {
   const { isLoggedIn, activeTab, setActiveTab, showOnboarding } = useAppContext();
+  const [isLoading, setIsLoading] = useState(true);
 
   // Add console log for debugging
   console.log('AppContent rendering, isLoggedIn:', isLoggedIn);
 
+  // Add a small delay to ensure Firebase auth state is properly initialized
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
   if (!isLoggedIn) {
-    return (
-      <Suspense fallback={<LoadingSpinner />}>
-        <LoginPage />
-      </Suspense>
-    );
+    return <LoginPage />;
   }
   
   // Show onboarding for new users
   if (showOnboarding) {
-    return (
-      <Suspense fallback={<LoadingSpinner />}>
-        <Onboarding />
-      </Suspense>
-    );
+    return <Onboarding />;
   }
 
   return (
     <div className="min-h-screen bg-app-darkblue relative">
       <div className="pb-16">
-        <Suspense fallback={<LoadingSpinner />}>
-          {activeTab === 'home' && <TaskList />}
-          {activeTab === 'add' && <NewTaskPage onBack={() => setActiveTab('home')} />}
-          {activeTab === 'dashboard' && <Dashboard />}
-          {activeTab === 'profile' && <ProfilePage />}
-        </Suspense>
+        {activeTab === 'home' && <TaskList />}
+        {activeTab === 'add' && <NewTaskPage onBack={() => setActiveTab('home')} />}
+        {activeTab === 'dashboard' && <Dashboard />}
+        {activeTab === 'profile' && <ProfilePage />}
       </div>
       <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>

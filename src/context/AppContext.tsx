@@ -8,7 +8,8 @@ import {
   signInWithPopup,
   onAuthStateChanged,
   Auth,
-  User as FirebaseUser
+  User as FirebaseUser,
+  browserLocalPersistence
 } from 'firebase/auth';
 import {
   collection,
@@ -77,10 +78,21 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   // Firebase auth state listener
   useEffect(() => {
     try {
+      console.log("Setting up Firebase auth listener");
       const auth = getFirebaseAuth();
+      
+      // Initialize Firebase auth with persistence
+      auth.setPersistence(browserLocalPersistence)
+        .catch(error => {
+          console.error("Error setting auth persistence:", error);
+        });
+      
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        console.log("Auth state changed:", firebaseUser ? "User logged in" : "No user");
+        
         if (firebaseUser) {
           try {
+            console.log("Fetching user data for:", firebaseUser.uid);
             const userData = await fetchUserData(firebaseUser.uid);
             setUser(userData);
             setIsLoggedIn(true);
@@ -92,6 +104,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
             setIsLoggedIn(false);
           }
         } else {
+          console.log("No user logged in, resetting state");
           setUser(null);
           setIsLoggedIn(false);
           setTasks([]);
