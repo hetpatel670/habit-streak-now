@@ -1,0 +1,3145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birthday Wishes App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.css">
+    <style>
+        /* Universal box-sizing */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body styling: font, background, centering content */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #845ef7 0%, #6b47c0 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 0.5s ease-in-out;
+        }
+
+        /* Admin button styling */
+        .admin-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .admin-btn:hover {
+            background: rgba(0, 0, 0, 0.8);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Notification badge styling */
+        .notification-badge {
+            background-color: #ff4d4d;
+            color: white;
+            border-radius: 50%;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: bold;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Main container for the app screens */
+        .container {
+            width: 420px;
+            height: 700px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 30px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* Styling for individual screens */
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+        }
+
+        /* Active screen state */
+        .screen.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* Exit screen state for transitions */
+        .screen.exit {
+            opacity: 0;
+            transform: translateX(-100%);
+        }
+
+        /* Emoji character display styling */
+        .emoji-character {
+            font-size: 80px; /* Adjust size as needed */
+            margin: 20px;
+            animation: float 4s ease-in-out infinite;
+            line-height: 1; /* Ensure emoji is centered well */
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.2); /* Optional: light background for emoji */
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        /* Specific styling for the messaging screen */
+        .messaging-screen {
+            padding: 25px;
+            justify-content: flex-start;
+        }
+
+        /* Header for the messaging screen */
+        .messaging-header {
+            width: 100%;
+            background: linear-gradient(135deg, #845ef7 0%, #6b47c0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 26px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Container for chat messages */
+        .messages-container {
+            flex: 1;
+            width: 100%;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.03); /* Base background color */
+            border-radius: 20px;
+            max-height: 450px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative; 
+            transition: background-image 0.5s ease-in-out;
+            z-index: 1; /* Ensure it's above body background */
+            /* DEBUG BORDER: This border helps confirm the element's presence and size */
+            border: 2px solid red !important; 
+        }
+
+        /* Overlay for background image */
+        .messages-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.5); /* Slightly more opaque white overlay */
+            z-index: 0; /* Behind content, above background-image */
+            border-radius: 20px; /* Match container border-radius */
+            pointer-events: none; /* Allow clicks to pass through */
+            opacity: 0; /* Initially hidden */
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .messages-container.has-background::before {
+            opacity: 1; /* Show overlay when background is present */
+        }
+
+        /* Base message bubble styling */
+        .message-bubble {
+            background: #f8f8f8;
+            padding: 14px 18px;
+            margin: 10px 0;
+            border-radius: 22px;
+            position: relative;
+            animation: messageSlide 0.4s ease-out;
+            border: 1px solid #e8e8e8;
+            text-align: left;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+            z-index: 1; 
+        }
+
+        /* Styling for user's own messages */
+        .message-bubble.user {
+            background: linear-gradient(135deg, #845ef7 0%, #6b47c0 100%);
+            color: white;
+            margin-left: 25%;
+            border: none;
+            box-shadow: 0 3px 8px rgba(132, 94, 247, 0.3);
+        }
+
+        /* Styling for admin (Het) messages */
+        .message-bubble.admin {
+            background: linear-gradient(135deg, #5cb85c 0%, #449d44 100%);
+            color: white;
+            margin-right: 25%;
+            border: none;
+            box-shadow: 0 3px 8px rgba(92, 184, 92, 0.3);
+        }
+
+        /* Styling for reply messages (general) */
+        .message-bubble.reply {
+            margin-left: 12%;
+            background: #e0f2f7;
+            border-left: 5px solid #42a5f5;
+            color: #333;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Styling for admin replies */
+        .message-bubble.reply.admin {
+            margin-right: 12%;
+            margin-left: auto; /* This might need adjustment if it causes issues with admin replies */
+            background: #e6ffe6;
+            border-left: 5px solid #66bb6a;
+            color: #333;
+        }
+
+        /* Message author styling */
+        .message-author {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            opacity: 0.9;
+            color: inherit;
+        }
+
+        /* Message text styling */
+        .message-text {
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 6px;
+            word-wrap: break-word; /* Ensure long words break */
+        }
+
+        /* Message timestamp styling */
+        .message-time {
+            font-size: 11px;
+            opacity: 0.8;
+            text-align: right;
+            color: inherit;
+        }
+
+        /* Container for message action buttons */
+        .message-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        /* Reply button styling */
+        .reply-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 6px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            color: inherit;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .reply-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Delete button styling (specific for Het) */
+        .delete-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .delete-btn:hover {
+            background: #c53030;
+            transform: translateY(-1px);
+        }
+
+        /* Message input area */
+        .message-input-area {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Reply context display */
+        .reply-context {
+            background: #f0f4f8;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #845ef7;
+            font-size: 13px;
+            display: none;
+            text-align: left;
+            width: 100%;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Cancel reply button */
+        .reply-cancel {
+            float: right;
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+        .reply-cancel:hover {
+            color: #555;
+        }
+
+        /* Message input textarea */
+        .message-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #cbd5e0;
+            border-radius: 25px;
+            font-size: 15px;
+            outline: none;
+            resize: none;
+            min-height: 45px;
+            max-height: 90px;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .message-input:focus {
+            border-color: #845ef7;
+            box-shadow: 0 0 0 4px rgba(132, 94, 247, 0.2);
+        }
+
+        /* Send button styling */
+        .send-btn {
+            background: linear-gradient(135deg, #845ef7 0%, #6b47c0 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(132, 94, 247, 0.4);
+            letter-spacing: 0.5px;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(132, 94, 247, 0.6);
+        }
+
+        /* General heading styles */
+        h1 {
+            background: linear-gradient(135deg, #845ef7 0%, #6b47c0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+            font-size: 36px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.15);
+            font-weight: 800;
+        }
+
+        h2 {
+            color: #2d3748;
+            margin-bottom: 25px;
+            font-size: 24px;
+            line-height: 1.5;
+            font-weight: 700;
+        }
+
+        p {
+            color: #4a5568;
+            font-size: 17px;
+            margin-bottom: 25px;
+            line-height: 1.7;
+        }
+
+        /* Input and textarea general styling */
+        input:not([type="file"]), textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            font-size: 17px;
+            margin-bottom: 25px;
+            outline: none;
+            transition: all 0.3s ease-in-out;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        input:focus:not([type="file"]), textarea:focus {
+            border-color: #845ef7;
+            box-shadow: 0 0 0 5px rgba(132, 94, 247, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Input error state */
+        input.error, textarea.error {
+            border-color: #e53e3e !important; /* Ensure high specificity */
+            box-shadow: 0 0 0 5px rgba(229, 62, 62, 0.2) !important;
+        }
+
+
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        /* General button styling */
+        button {
+            background: linear-gradient(135deg, #845ef7 0%, #6b47c0 100%);
+            color: white;
+            border: none;
+            padding: 16px 30px;
+            border-radius: 30px;
+            font-size: 17px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+            font-weight: 700;
+            box-shadow: 0 5px 15px rgba(132, 94, 247, 0.4);
+            letter-spacing: 0.5px;
+        }
+        button.secondary-btn {
+            background: linear-gradient(135deg, #a0aec0 0%, #718096 100%);
+            font-size: 15px;
+            padding: 12px 25px;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(160, 174, 192, 0.3);
+        }
+        button.secondary-btn:hover {
+             box-shadow: 0 8px 20px rgba(160, 174, 192, 0.5);
+        }
+
+
+        button:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(132, 94, 247, 0.6);
+        }
+
+        button:active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(132, 94, 247, 0.3);
+        }
+
+        /* Specific button color variations */
+        .yes-btn {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+        }
+
+        .yes-btn:hover {
+            box-shadow: 0 10px 30px rgba(72, 187, 120, 0.6);
+        }
+
+        .no-btn {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
+        }
+
+        .no-btn:hover {
+            box-shadow: 0 10px 30px rgba(245, 101, 101, 0.6);
+        }
+
+        .thank-btn {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            box-shadow: 0 5px 15px rgba(237, 137, 54, 0.4);
+        }
+
+        .thank-btn:hover {
+            box-shadow: 0 10px 30px rgba(237, 137, 54, 0.6);
+        }
+
+        /* Keyframe animation for floating characters/emojis */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-12px) rotate(3deg); }
+            50% { transform: translateY(-18px) rotate(0deg); }
+            75% { transform: translateY(-7px) rotate(-3deg); }
+        }
+
+        /* Keyframe animation for button bounce */
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .bounce {
+            animation: bounce 0.6s ease-in-out;
+        }
+
+        /* Celebration effects container on Screen 4 */
+        .celebration-effects-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* Individual celebration emoji styling */
+        .celebration-emoji {
+            position: absolute;
+            font-size: 32px;
+            animation: blastEffect 1.8s ease-out forwards;
+            opacity: 0;
+            will-change: transform, opacity;
+        }
+
+        @keyframes blastEffect {
+            0% {
+                transform: scale(0.2) translate(0, 30px);
+                opacity: 1;
+            }
+            20% {
+                 transform: scale(1.3);
+                 opacity: 1;
+            }
+            100% {
+                transform: scale(2) translate(var(--tx, 0px), var(--ty, -250px)) rotate(var(--rot, 0deg));
+                opacity: 0;
+            }
+        }
+
+
+        /* Birthday text styling */
+        .birthday-text {
+            background: linear-gradient(135deg, #845ef7 0%, #6b47c0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 32px;
+            font-weight: 800;
+            margin: 25px 0;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        /* Loading indicator styling */
+        .loading {
+            text-align: center;
+            color: #845ef7;
+            margin: 25px 0;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        /* Particles animation container */
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* Individual particle styling */
+        .particle {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background: rgba(132, 94, 247, 0.8);
+            border-radius: 50%;
+            animation: particleFloat 7s ease-in-out infinite;
+            box-shadow: 0 0 8px rgba(132, 94, 247, 0.5);
+        }
+
+        /* Keyframe animation for floating particles */
+        @keyframes particleFloat {
+            0% { transform: translateY(100vh) translateX(0) scale(0); opacity: 0; } /* Start from bottom */
+            10% { opacity: 1; transform: translateY(80vh) translateX(var(--x, 0px)) scale(1); }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) translateX(var(--x, 50px)) scale(0); opacity: 0; } /* End off top */
+        }
+
+        /* Admin Panel (now used as password gate for chat) */
+        .admin-panel { /* This class seems unused, keeping for now if it's for a future feature */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            display: none; /* Initially hidden */
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .admin-content { /* This class seems unused */
+            max-width: 450px;
+            background: white;
+            padding: 35px;
+            border-radius: 20px;
+            position: relative;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .close-admin { /* This class seems unused */
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #888;
+            transition: color 0.2s;
+        }
+        .close-admin:hover { /* This class seems unused */
+            color: #555;
+        }
+
+        /* Custom alert/message box styling */
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            display: none; /* Initially hidden */
+            backdrop-filter: blur(6px);
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .message-box {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            max-width: 380px; /* Slightly wider for better content fit */
+            width: 90%;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            animation: slideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .message-box-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+            transition: color 0.2s;
+        }
+        .message-box-close:hover {
+            color: #555;
+        }
+
+        .message-box h3 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .message-box h3 i {
+            font-size: 24px;
+            color: #845ef7; /* Default icon color */
+        }
+        .message-box h3 i.fa-check-circle { color: #48bb78; } /* Success */
+        .message-box h3 i.fa-exclamation-triangle { color: #ed8936; } /* Warning */
+        .message-box h3 i.fa-times-circle { color: #e53e3e; } /* Error */
+        .message-box h3 i.fa-info-circle { color: #4299e1; } /* Info */
+
+
+        .message-box p {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .message-box button {
+            margin-top: 15px;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 15px;
+        }
+
+        /* Error message styling for auth modals */
+        .error-message {
+            color: #e53e3e;
+            font-size: 14px;
+            margin-top: -15px; /* Pull up slightly if input has margin-bottom */
+            margin-bottom: 15px;
+            min-height: 20px; 
+            font-weight: 500;
+        }
+
+        /* Admin Panel Specific Styles (Screen 13) */
+        .admin-section {
+            margin-bottom: 35px;
+            padding-bottom: 25px;
+            border-bottom: 1px dashed #e0e0e0;
+            width: 100%; /* Ensure sections take full width */
+        }
+        .admin-section:last-child {
+            border-bottom: none;
+        }
+        .admin-section h3 {
+            font-size: 20px;
+            color: #4a5568;
+            margin-bottom: 18px;
+            font-weight: 600;
+            text-align: left; /* Align section titles left */
+        }
+        .admin-section input[type="file"] { /* This is handled by Uploadcare now, but keeping for potential direct use */
+            margin-bottom: 15px;
+            border: 1px solid #cbd5e0;
+            padding: 12px;
+            border-radius: 10px;
+            background: #fcfcfc;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+            width: 100%;
+        }
+        .admin-section .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .admin-section .button-group button {
+            margin: 6px;
+        }
+        .album-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 25px;
+            width: 100%;
+        }
+        .album-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f7f9fb;
+            padding: 12px 18px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 16px;
+            color: #2d3748;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .album-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(0,0,0,0.12);
+        }
+        .album-item span {
+            font-weight: 500;
+            flex-grow: 1; /* Allow name to take space */
+            text-align: left;
+        }
+        .album-item .album-actions {
+            display: flex;
+            gap: 8px; /* Spacing between action buttons */
+            flex-shrink: 0; /* Prevent actions from shrinking */
+        }
+        .album-item .album-actions button {
+            margin: 0; /* Remove individual margins if gap is used */
+            padding: 8px 14px;
+            font-size: 13px;
+            border-radius: 18px;
+        }
+
+        /* Background image preview in Admin Panel */
+        .background-preview {
+            width: 100%;
+            height: 120px;
+            background-color: #f0f4f8;
+            border: 1px dashed #a0aec0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .background-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* or cover, depending on preference */
+            border-radius: 8px;
+        }
+        .background-preview .placeholder-text {
+            color: #718096;
+            font-size: 14px;
+            text-align: center;
+            padding: 10px;
+        }
+
+
+        /* Media Upload Modal (Uploadcare) */
+        #uploadModalOverlay .message-box { /* Target specific modal for upload styling */
+             max-width: 480px;
+        }
+       
+        #uploadModalOverlay h3 {
+            margin-bottom: 25px;
+            font-size: 22px;
+        }
+        
+        #appFileUploader { /* Style the Uploadcare widget container */
+            margin-bottom: 20px;
+            border: 2px dashed #845ef7;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #f9f7ff;
+        }
+        #appFileUploader .uc-uploader-area { /* Style the drag-and-drop area */
+            min-height: 150px; /* Give it some height */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #6b47c0;
+            font-size: 16px;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer; /* Indicate it's clickable */
+        }
+        #appFileUploader .uc-uploader-area::before {
+            content: "\f0ee"; /* Font Awesome upload icon */
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+            font-size: 40px;
+            margin-bottom: 10px;
+            color: #845ef7;
+        }
+        #appFileUploader .uc-uploader-area span {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #a0aec0;
+        }
+
+
+        #uploadModalOverlay .upload-status {
+            margin-top: 15px;
+            font-size: 15px;
+            color: #666;
+            font-weight: 500;
+            min-height: 20px; /* Reserve space */
+        }
+
+        /* Album View Screen (Screen 15) */
+        .album-view-screen {
+            padding: 30px;
+            justify-content: flex-start;
+            text-align: left; /* Default text align for this screen */
+        }
+        .album-view-screen h2 { /* Album name header */
+            text-align: center;
+            margin-bottom: 25px;
+            color: #845ef7; /* Match theme color */
+        }
+        .album-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px;
+            width: 100%;
+            padding-bottom: 30px; /* Space for scrollbar or back button */
+        }
+        .album-media-item {
+            background: #f7f9fb;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between; /* Better content distribution */
+            padding: 15px;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            text-align: center;
+        }
+        .album-media-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        }
+        .album-media-item img {
+            /* DEBUG BORDER: This border helps confirm the image element's presence and size */
+            border: 2px solid blue !important; 
+            width: 100%;
+            height: 130px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #eee;
+        }
+        /* Styling for video containers in album */
+        .album-media-item .video-container {
+            position: relative;
+            width: 100%;
+            height: 130px;
+            background-color: #f0f4f8; /* Placeholder background */
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            /* DEBUG BORDER: This border helps confirm the video container's presence and size */
+            border: 2px solid green !important; 
+        }
+        .album-media-item .video-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+            border: none; /* No extra border on img inside video container */
+        }
+        .album-media-item .video-container .play-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            transition: background 0.3s ease;
+        }
+        .album-media-item .video-container .play-overlay:hover {
+            background: rgba(0,0,0,0.6);
+        }
+        .album-media-item .video-container .play-overlay i {
+            font-size: 40px;
+            color: white;
+            opacity: 0.9;
+            transition: transform 0.3s ease;
+        }
+        .album-media-item .video-container .play-overlay:hover i {
+            transform: scale(1.1);
+        }
+
+        .album-media-item .media-name {
+            font-size: 14px;
+            color: #333;
+            word-break: break-word;
+            font-weight: 500;
+            margin-bottom: 8px; /* Space before actions */
+        }
+        .album-media-item .media-actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: auto; /* Push actions to bottom if content is short */
+        }
+        .album-media-item .media-actions button {
+            padding: 6px 12px;
+            font-size: 11px;
+            border-radius: 15px;
+            margin: 0;
+        }
+        .album-view-screen .back-button {
+            margin-top: 25px;
+            align-self: center; /* Center the back button */
+        }
+
+        /* User Album List Screen (Screen 14) */
+        .user-albums-screen {
+            padding: 30px;
+            justify-content: flex-start;
+        }
+        .user-albums-screen h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #845ef7;
+        }
+        .user-albums-list {
+            list-style: none;
+            padding: 0;
+            width: 100%;
+        }
+        .user-albums-list .album-item { /* Re-use album-item style */
+            cursor: pointer;
+        }
+        .user-albums-list .album-item .album-actions {
+            display: none; /* Hide admin actions for user view */
+        }
+        .user-albums-screen .back-button {
+            margin-top: 25px;
+            align-self: center;
+        }
+
+
+        /* Media queries for responsive design */
+        @media (max-width: 600px) {
+            .container {
+                width: 95%;
+                height: 95vh;
+                border-radius: 20px;
+            }
+
+            .screen {
+                padding: 20px;
+            }
+            .messaging-screen { padding: 15px; }
+
+
+            h1 { font-size: 28px; margin-bottom: 20px;}
+            h2 { font-size: 20px; margin-bottom: 15px;}
+            p { font-size: 15px; margin-bottom: 15px;}
+
+            input:not([type="file"]), textarea, button {
+                font-size: 15px;
+                padding: 12px;
+                margin-bottom: 15px;
+            }
+            button { padding: 12px 20px; margin: 8px;}
+
+
+            .emoji-character {
+                font-size: 60px;
+                width: 100px;
+                height: 100px;
+                margin: 15px;
+            }
+
+            .admin-btn {
+                top: 10px;
+                right: 10px;
+                padding: 8px 14px;
+                font-size: 12px;
+            }
+
+            .notification-badge {
+                top: -6px;
+                right: -6px;
+                padding: 2px 6px;
+                font-size: 10px;
+            }
+            
+            .messages-container {
+                max-height: calc(100% - 200px); /* Adjust based on header/input area */
+                padding: 10px;
+            }
+
+            .message-bubble {
+                padding: 10px 14px;
+                margin: 8px 0;
+            }
+             .message-bubble.user { margin-left: 20%; }
+             .message-bubble.admin { margin-right: 20%; }
+             .message-bubble.reply { margin-left: 10%; }
+             .message-bubble.reply.admin { margin-right: 10%; }
+
+
+            .message-author { font-size: 12px; }
+            .message-text { font-size: 14px; }
+            .message-time { font-size: 10px; }
+
+
+            .reply-btn, .delete-btn {
+                padding: 5px 10px;
+                font-size: 10px;
+            }
+            .message-input { min-height: 40px; max-height: 80px; padding: 12px;}
+            .send-btn { padding: 10px 20px; font-size: 14px; }
+
+
+            .message-box { padding: 25px; }
+            .message-box h3 { font-size: 18px; }
+            .message-box p { font-size: 14px; }
+            .message-box button { padding: 10px 20px; font-size: 14px; }
+
+            .admin-section { padding-bottom: 20px; margin-bottom: 20px; }
+            .admin-section h3 { font-size: 18px; }
+            .album-list .album-item, .user-albums-list .album-item { padding: 10px 15px; font-size: 14px; }
+            .album-item .album-actions button { padding: 6px 10px; font-size: 11px; }
+
+
+            .album-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 15px;
+            }
+            .album-media-item { padding: 10px; }
+            .album-media-item img, .album-media-item .video-container {
+                height: 100px;
+            }
+            .album-media-item .media-name { font-size: 12px; }
+            .album-media-item .media-actions button { padding: 5px 10px; font-size: 10px;}
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+    <button class="admin-btn" id="hetHoButton" onclick="showAdminLoginModal()">
+        <i class="fas fa-user-shield"></i> Het Ho ? <span class="notification-badge" id="notificationBadge">0</span>
+    </button>
+    
+    <div class="container">
+        <div class="screen active" id="screen1">
+            <div class="emoji-character" id="screen1Character">😊</div>
+            <h1>Welcome!</h1>
+            <p>Enter your name to continue:</p>
+            <input type="text" id="nameInput" placeholder="Your name..." />
+            <button onclick="goToScreen2()">Next</button>
+            <button class="secondary-btn" onclick="showResumeModal()">Already Completed?</button>
+        </div>
+
+        <div class="screen" id="screen2">
+            <div class="emoji-character" id="screen2Character">👋</div>
+            <h2 id="greeting"></h2>
+            <button onclick="goToScreen3()">Continue</button>
+        </div>
+
+        <div class="screen" id="screen3">
+            <div class="emoji-character" id="screen3Character">🤔</div>
+            <h2 id="birthdayQuestion"></h2>
+            <div>
+                <button class="yes-btn" onclick="answerYes()">Yes</button>
+                <button class="no-btn" onclick="answerNo()">No</button>
+            </div>
+        </div>
+
+        <div class="screen" id="screen4">
+            <div class="celebration-effects-container" id="screen4Effects"></div>
+            <div class="emoji-character" id="screen4Character">🥳</div>
+            <div class="birthday-text" id="happyBirthday"></div>
+            <p>🎂🎈🎁 Have a wonderful day! 🎁🎈🎂</p>
+            <button onclick="goToGiftScreen()">Continue</button>
+        </div>
+
+        <div class="screen" id="screen5">
+            <div class="emoji-character" id="screen5Character">🎁</div>
+            <h2>Bol tane su gift khaperu?</h2>
+            <textarea id="giftInput" placeholder="Type your gift message here..."></textarea>
+            <button onclick="submitGift()">Submit</button>
+        </div>
+
+        <div class="screen" id="screen6">
+            <div class="emoji-character" id="screen6Character">💸</div>
+            <h2 id="noMoneyMessage"></h2>
+            <button onclick="goToThankScreen()">Next</button>
+        </div>
+
+        <div class="screen" id="screen7">
+            <div class="emoji-character" id="screen7Character">🤗</div>
+            <h2>Pan me tane gift nu puchyu etle thank you toh ke?</h2>
+            <div>
+                <button class="thank-btn" onclick="thankYou()">Thank You</button>
+                <button class="no-btn" onclick="noThankYou()">No Thank You</button>
+            </div>
+        </div>
+
+        <div class="screen" id="screen8">
+            <div class="emoji-character" id="screen8Character">😤</div>
+            <h2 id="forceThankMessage"></h2>
+            <button class="thank-btn" onclick="finalThankYou()">Thank You</button>
+        </div>
+
+        <div class="screen" id="screen9">
+            <div class="emoji-character" id="screen9Character">🇮🇳</div>
+            <h1>Tara birthday na tane... 🎉</h1>
+            <h2>JAI HIND!</h2>
+            <button onclick="goToMessaging()">Chat with Het</button>
+        </div>
+
+        <div class="screen" id="screen10">
+            <div class="emoji-character" id="screen10Character">😔</div>
+            <h2>kem taro birthday ajj nathi</h2>
+            <button onclick="checkDate()">Check Date</button>
+        </div>
+
+        <div class="screen" id="screen11">
+            <div class="emoji-character" id="finalCharacter">📅</div>
+            <h2 id="dateResult"></h2>
+            <p id="finalMessage"></p>
+            <button onclick="goToMessaging()">Chat with Het</button>
+            <button class="secondary-btn" onclick="restartApp()">Start Again</button>
+        </div>
+
+        <div class="screen messaging-screen" id="screen12">
+            <div class="messaging-header" id="messagingHeader">💬 Chat with Het</div>
+            <div class="messages-container" id="messagesContainer">
+                <div class="loading" id="messagesLoading">Loading messages...</div>
+            </div>
+            <div class="message-input-area">
+                <div class="reply-context" id="replyContext">
+                    <button class="reply-cancel" onclick="cancelReply()"><i class="fas fa-times"></i></button>
+                    <div id="replyPreview"></div>
+                </div>
+                <textarea class="message-input" id="messageInput" placeholder="Type your message here..." rows="2"></textarea>
+                <button class="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i> Send</button>
+                <div style="display: flex; justify-content: center; width: 100%; flex-wrap: wrap; margin-top: 10px; gap: 10px;">
+                    <button onclick="logoutUser()" class="secondary-btn" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%); display: none;" id="logoutButton"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                    <button id="deleteAllMessagesBtn" onclick="deleteAllMessages()" class="secondary-btn" style="background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); display: none;"><i class="fas fa-trash-alt"></i> Delete All Messages</button>
+                    <button class="secondary-btn" id="viewAlbumsButton" onclick="goToUserAlbums()" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);"><i class="fas fa-images"></i> View Albums</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="screen" id="screen13">
+            <h2 class="messaging-header" style="font-size: 24px; margin-bottom: 30px;"><i class="fas fa-cogs"></i> Admin Panel</h2>
+            <div class="admin-section">
+                <h3><i class="fas fa-image"></i> Chat Background Image</h3>
+                <div class="background-preview" id="backgroundPreview">
+                    <span class="placeholder-text">No background image set.</span>
+                </div>
+                <button onclick="openUploadModal('background')" class="secondary-btn" style="width: calc(100% - 20px); margin: 10px auto; display: block; text-align: center; cursor: pointer; background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);">
+                    <i class="fas fa-upload"></i> Upload & Set Background
+                </button>
+                <div class="button-group">
+                    <button class="no-btn" onclick="removeBackgroundImage()"><i class="fas fa-times-circle"></i> Remove Background</button>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3><i class="fas fa-photo-video"></i> Manage Albums</h3>
+                <input type="text" id="newAlbumNameInput" placeholder="New album name" style="margin-bottom: 15px;" />
+                <button onclick="createAlbum()" style="margin-bottom: 20px;"><i class="fas fa-plus-circle"></i> Create Album</button>
+                <ul id="albumList" class="album-list">
+                    </ul>
+            </div>
+            <div style="display: flex; justify-content: center; width: 100%; flex-wrap: wrap; margin-top: 20px; gap: 10px;">
+                <button onclick="goToMessaging()" class="secondary-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"><i class="fas fa-comments"></i> Back to Chat</button>
+                <button onclick="logoutAdmin()" class="no-btn"><i class="fas fa-sign-out-alt"></i> Logout Admin</button>
+            </div>
+        </div>
+
+        <div class="screen user-albums-screen" id="screen14">
+            <h2><i class="fas fa-images"></i> Photo/Video Albums</h2>
+            <ul id="userAlbumList" class="user-albums-list">
+                </ul>
+            <button onclick="goBackToPreviousScreen()" class="back-button secondary-btn"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+
+        <div class="screen album-view-screen" id="screen15">
+            <h2 id="currentAlbumName"></h2>
+            <button onclick="openUploadModal('album_media', currentAlbumId, document.getElementById('currentAlbumName').textContent.replace('<i class=\"fas fa-folder-open\"></i> ', ''))" class="secondary-btn" style="margin-bottom: 20px;">
+                <i class="fas fa-plus-circle"></i> Add More Media
+            </button>
+            <div id="albumMediaGrid" class="album-grid">
+                </div>
+            <button onclick="goBackToPreviousScreen()" class="back-button secondary-btn"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+
+    </div> 
+    
+    <div class="message-box-overlay" id="resumeModalOverlay">
+        <div class="message-box">
+            <button class="message-box-close" onclick="closeResumeModal()"><i class="fas fa-times"></i></button>
+            <h3><i class="fas fa-user"></i> Resume Session</h3>
+            <p>Enter your name to resume:</p>
+            <input type="text" id="resumeNameInput" placeholder="Your name..." />
+            <p class="error-message" id="resumeErrorMessage"></p>
+            <button onclick="resumeSession()">Resume</button>
+        </div>
+    </div>
+
+    <div class="message-box-overlay" id="adminLoginModalOverlay">
+        <div class="message-box">
+            <button class="message-box-close" onclick="closeAdminLoginModal()"><i class="fas fa-times"></i></button>
+            <h3><i class="fas fa-user-shield"></i> Admin Login</h3>
+            <input type="email" id="adminEmailInput" placeholder="Admin Email" />
+            <input type="password" id="adminPasswordInput" placeholder="Admin Password" />
+            <p class="error-message" id="adminLoginErrorMessage"></p>
+            <button onclick="adminLogin()">Login as Admin</button>
+        </div>
+    </div>
+
+    <div class="message-box-overlay" id="messageBoxOverlay">
+        <div class="message-box">
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxContent"></p>
+            <div id="messageBoxButtons">
+                </div>
+        </div>
+    </div>
+
+    <div class="message-box-overlay" id="uploadModalOverlay">
+        <div class="message-box"> 
+            <button class="message-box-close" onclick="closeUploadModal()"><i class="fas fa-times"></i></button>
+            <h3 id="uploadModalTitle">Upload Media</h3>
+            <uc-config 
+                ctx-name="app-uploader" 
+                pubkey="b95c62136edcc0fa1009"> 
+            </uc-config>
+            <uc-file-uploader-regular 
+                ctx-name="app-uploader" 
+                id="appFileUploader"> 
+                <div class="uc-uploader-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    Drag & Drop files here or click to upload
+                    <span>Supports images and videos</span>
+                </div>
+            </uc-file-uploader-regular>
+            <p class="upload-status" id="uploadStatus"></p>
+            <button class="secondary-btn" onclick="closeUploadModal()" style="margin-top: 20px;">Done</button>
+        </div>
+    </div>
+
+    <script type="module">
+        console.log("App script started.");
+
+        // Firebase Imports (using version 11.6.1 as per general instructions)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getDatabase, ref as dbRef, push, onValue, off, remove, get, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        
+        // Import Uploadcare file uploader component
+        import * as UC from 'https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.js';
+        UC.defineComponents(UC); // Register Uploadcare components
+        
+        // Firebase config (DO NOT REMOVE - User's existing keys)
+        // IMPORTANT: Verify this `appId` with your actual Firebase project settings.
+        const firebaseConfig = {
+            apiKey: "AIzaSyAhV6m8RZSu3erC_zKYOMyrfSyDmyxmLTw", 
+            authDomain: "dotogether-c0b18.firebaseapp.com", 
+            databaseURL: "https://dotogether-c0b18-default-rtdb.asia-southeast1.firebasedatabase.app", 
+            projectId: "dotogether-c0b18", 
+            storageBucket: "dotogether-c0b18.firebasestorage.app", 
+            messagingSenderId: "52364021580", 
+            appId: "1:52364021580:web:2dff4a01dcab82862e09e4", 
+            measurementId: "G-0L7W6M722D" 
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const realtimeDb = getDatabase(app); 
+        const auth = getAuth(app); 
+
+        // Uploadcare Public Key (DO NOT REMOVE - User's existing key)
+        const UPLOADCARE_PUBLIC_KEY = 'b95c62136edcc0fa1009'; 
+        // This key is also set directly in the uc-config HTML tag.
+        // Ensure consistency or rely on the HTML tag's pubkey.
+
+        // Global variables for app state
+        let userName = '';
+        let currentUserUID = null; 
+        let giftMessage = '';
+        let replyingTo = null; // {id, message, author}
+        let messagesListener = null; 
+        let chatNotificationListener = null; 
+        let notificationCount = 0;
+        let lastMessageTimestamp = 0; 
+        let loggedInAsHet = false; 
+        let currentAlbumId = null; 
+        let previousScreenId = 'screen1'; // Store ID of previous screen for back navigation
+        let currentScreenId = 'screen1'; // Store ID of current screen
+        let adminUID = null; // Fetched from Firebase
+
+        // Uploadcare related variables
+        let appFileUploader = null; // Reference to the Uploadcare widget
+        let currentUploadPurpose = null; // 'background' or 'album_media'
+        let currentAlbumIdForUpload = null; // Used for album media uploads
+
+
+        // Fetch adminUID on startup
+        async function fetchAdminUID() {
+            const adminUIDRef = dbRef(realtimeDb, 'adminUID');
+            try {
+                const snapshot = await get(adminUIDRef);
+                if (snapshot.exists()) {
+                    adminUID = snapshot.val();
+                    console.log("Admin UID loaded:", adminUID);
+                } else {
+                    console.warn("Admin UID not yet set in Firebase. First admin login will set it.");
+                }
+            } catch (error) {
+                console.error("Error fetching admin UID on startup:", error);
+                showMessageBox('Startup Error', 'Could not fetch admin configuration. Some features might be affected.', 'error');
+            }
+        }
+
+
+        // Emojis for different screens/contexts
+        const screenEmojis = {
+            screen1: '😊', // Welcome
+            screen2: '👋', // Greeting
+            screen3: '🤔', // Birthday Question
+            screen4: '🥳', // Happy Birthday
+            screen5: '🎁', // Gift Question
+            screen6: '💸', // No Money
+            screen7: '🤗', // Thank You Question
+            screen8: '😤', // Force Thank You
+            screen9: '🇮🇳', // Final - Jai Hind
+            screen10: '😔', // Not Birthday
+            screen11: '📅', // Date Result / Final Character
+        };
+        
+        // Function to update the emoji character on a screen
+        function updateEmojiForScreen(screenId) {
+            const characterDiv = document.getElementById(screenId + "Character") || (screenId === 'screen11' ? document.getElementById('finalCharacter') : null) ;
+            if (characterDiv) {
+                const emoji = screenEmojis[screenId] || '✨'; // Default emoji if not found
+                characterDiv.textContent = emoji;
+            }
+        }
+        
+        // Function to create animated particles in the background
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            if (!particlesContainer || particlesContainer.children.length > 30) return; // Limit particle count
+            
+            for (let i = 0; i < 15; i++) { // Create a burst of particles
+                setTimeout(() => {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    // Randomize animation delay and duration for variety
+                    particle.style.animationDelay = Math.random() * 5 + 's'; 
+                    particle.style.animationDuration = (Math.random() * 4 + 4) + 's'; // Duration between 4s and 8s
+                    // Randomize horizontal movement
+                    particle.style.setProperty('--x', `${(Math.random() - 0.5) * 250}px`); 
+                    particlesContainer.appendChild(particle);
+                    
+                    // Remove particle after animation to prevent clutter
+                    setTimeout(() => {
+                        if (particle.parentNode) {
+                            particle.remove();
+                        }
+                    }, parseFloat(particle.style.animationDuration) * 1000 + parseFloat(particle.style.animationDelay) * 1000 + 500);
+                }, i * 200); // Stagger particle creation
+            }
+        }
+        
+        // Initial particle creation and interval
+        createParticles();
+        setInterval(createParticles, 10000); // Create new bursts periodically
+
+        // Function to navigate between screens
+        window.showScreen = function(newScreenId) {
+            console.log(`[showScreen] Attempting to show screen: ${newScreenId}. Current screen: ${currentScreenId}`);
+            if (newScreenId === currentScreenId) {
+                console.log(`[showScreen] Already on screen ${newScreenId}, no transition needed.`);
+                return; 
+            }
+
+            const currentScreenElement = document.getElementById(currentScreenId);
+            const newScreenElement = document.getElementById(newScreenId);
+
+            if (!newScreenElement) {
+                console.error(`[showScreen] Error: New screen element ${newScreenId} not found.`);
+                showMessageBox('Navigation Error', `Screen ${newScreenId} does not exist.`, 'error');
+                return;
+            }
+
+            if (currentScreenElement) {
+                 currentScreenElement.classList.add('exit');
+                 // Wait for exit animation to complete before making the new screen active
+                 setTimeout(() => {
+                    currentScreenElement.classList.remove('active', 'exit');
+                    newScreenElement.classList.add('active');
+                    updateEmojiForScreen(newScreenId); 
+                    console.log(`[showScreen] Successfully transitioned to screen ${newScreenId}.`);
+                }, 700); // Match transition duration
+            } else {
+                // If currentScreenElement is not found (e.g., initial load or error state)
+                newScreenElement.classList.add('active');
+                updateEmojiForScreen(newScreenId);
+                console.warn(`[showScreen] Current screen element ${currentScreenId} not found. Forced activation of ${newScreenId}.`);
+            }
+            previousScreenId = currentScreenId; 
+            currentScreenId = newScreenId; 
+        }
+
+        // Function to go back to the previously viewed screen
+        window.goBackToPreviousScreen = function() {
+            console.log(`[goBackToPreviousScreen] Current: ${currentScreenId}, Previous: ${previousScreenId}`);
+            if (previousScreenId) {
+                // Special handling for navigating back from album view to either user albums or admin panel
+                if (currentScreenId === 'screen15') { // Album Media View
+                    if (loggedInAsHet && previousScreenId === 'screen13') { // Came from Admin Panel's album list
+                        showScreen('screen13');
+                    } else { // Came from User Albums list or other
+                        showScreen('screen14'); // Default to user albums list
+                    }
+                } else if (currentScreenId === 'screen14') { // User Albums List
+                     showScreen('screen12'); // Go back to chat
+                }
+                else {
+                    showScreen(previousScreenId);
+                }
+            } else {
+                showScreen('screen1'); // Default fallback
+            }
+        }
+
+
+        // Screen 1: Welcome -> Screen 2
+        window.goToScreen2 = async function() {
+            console.log("[goToScreen2] Button clicked.");
+            const nameInput = document.getElementById('nameInput');
+            if (nameInput.value.trim() === '') {
+                nameInput.classList.add('error');
+                nameInput.placeholder = 'Please enter your name!';
+                showMessageBox('Input Required', 'Please enter your name to proceed.', 'warning');
+                return;
+            }
+            nameInput.classList.remove('error'); 
+            
+            userName = nameInput.value.trim();
+            localStorage.setItem('userName', userName); 
+            document.getElementById('greeting').textContent = `Ohh, ${userName}! 👋`;
+            showScreen('screen2');
+            console.log(`[goToScreen2] User name set to: ${userName}`);
+        }
+
+        // Screen 2: Greeting -> Screen 3
+        window.goToScreen3 = function() {
+            console.log("[goToScreen3] Button clicked.");
+            document.getElementById('birthdayQuestion').textContent = `Ohh to taro birthday ajj he ${userName}?`;
+            showScreen('screen3');
+        }
+        
+        // Function to trigger celebration effects (emojis blasting)
+        function triggerBirthdayCelebrationEffects() {
+            const effectsContainer = document.getElementById('screen4Effects');
+            if (!effectsContainer) return;
+            effectsContainer.innerHTML = ''; // Clear previous effects
+            const emojis = ['❤️', '🥳', '🎉', '💖', '✨', '🎈', '🎂', '🎁'];
+            const numEmojis = 30; // More emojis for a bigger celebration
+
+            for (let i = 0; i < numEmojis; i++) {
+                setTimeout(() => {
+                    const emojiSpan = document.createElement('span');
+                    emojiSpan.className = 'celebration-emoji';
+                    emojiSpan.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                    
+                    // Random starting position within the screen
+                    const startX = Math.random() * 80 + 10; // %
+                    const startY = Math.random() * 60 + 20; // %
+                    emojiSpan.style.left = `${startX}%`;
+                    emojiSpan.style.top = `${startY}%`;
+
+                    // Random trajectory for blast effect
+                    const angle = Math.random() * Math.PI * 2; // Full circle
+                    const distance = 150 + Math.random() * 150; // pixels
+                    emojiSpan.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
+                    emojiSpan.style.setProperty('--ty', `${Math.sin(angle) * distance - (70 + Math.random()*80)}px`); // More upward motion
+                    emojiSpan.style.setProperty('--rot', `${Math.random() * 720 - 360}deg`); // Random rotation
+                    
+                    const animationDuration = 1800; // ms
+                    const currentDelay = Math.random() * 0.8; // s, stagger start times
+                    emojiSpan.style.animationDelay = `${currentDelay}s`;
+                    
+                    effectsContainer.appendChild(emojiSpan);
+                    // Remove emoji after animation to prevent buildup
+                    setTimeout(() => {
+                        if (emojiSpan.parentNode) {
+                            emojiSpan.remove();
+                        }
+                    }, animationDuration + currentDelay * 1000 + 200); // Add buffer
+                }, i * (Math.random() * 60 + 30) ); // Stagger creation of each emoji
+            }
+        }
+
+        // Screen 3: Yes -> Screen 4 (Happy Birthday)
+        window.answerYes = function() {
+            console.log("[answerYes] Button clicked.");
+            document.getElementById('happyBirthday').textContent = `${userName}, Happy Birthday! 🎉`;
+            triggerBirthdayCelebrationEffects(); 
+            showScreen('screen4');
+        }
+
+        // Screen 4: Continue -> Screen 5 (Gift)
+        window.goToGiftScreen = function() {
+            console.log("[goToGiftScreen] Button clicked.");
+            showScreen('screen5');
+        }
+
+        // Screen 5: Submit Gift -> Screen 6
+        window.submitGift = async function() {
+            console.log("[submitGift] Button clicked.");
+            const giftInput = document.getElementById('giftInput');
+            if (giftInput.value.trim() === '') {
+                giftInput.classList.add('error');
+                giftInput.placeholder = 'Please enter your gift message!';
+                showMessageBox('Input Required', 'Please enter your gift message.', 'warning');
+                return;
+            }
+            giftInput.classList.remove('error');
+            
+            giftMessage = giftInput.value.trim();
+            
+            try {
+                // Save birthday message
+                const birthdayMessagesRef = dbRef(realtimeDb, 'birthday-messages');
+                await push(birthdayMessagesRef, {
+                    name: userName,
+                    gift: giftMessage,
+                    timestamp: new Date().toISOString(),
+                    date: new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY
+                    uid: currentUserUID // Store UID of the user who submitted
+                });
+
+                // Also post gift message to chat for Het to see
+                const chatMessagesRef = dbRef(realtimeDb, 'chat-messages');
+                await push(chatMessagesRef, {
+                    author: userName, // User's name
+                    message: `🎁 Gift wish from ${userName}: ${giftMessage}`,
+                    timestamp: new Date().toISOString(),
+                    isAdmin: false, // This is a user message
+                    uid: currentUserUID, // UID of the user
+                    isSystem: true // Optional flag for system-generated messages
+                });
+                
+                document.getElementById('noMoneyMessage').textContent = `Accha, ${giftMessage} pan mara kane paisa nathi etle sorry 💸`;
+                showScreen('screen6');
+                console.log("[submitGift] Gift submitted and message sent to chat.");
+            } catch (error) {
+                console.error("[submitGift] Error submitting gift:", error);
+                showMessageBox('Submission Error', `Failed to submit gift message: ${error.message}. Please check your internet connection.`, 'error');
+            }
+        }
+
+        // Screen 6: Next -> Screen 7 (Thank You Question)
+        window.goToThankScreen = function() {
+            console.log("[goToThankScreen] Button clicked.");
+            showScreen('screen7');
+        }
+
+        // Screen 7: Thank You -> Screen 9 (Final)
+        window.thankYou = function() {
+            console.log("[thankYou] Button clicked.");
+            showScreen('screen9');
+        }
+
+        // Screen 7: No Thank You -> Screen 8 (Force Thank You)
+        window.noThankYou = function() {
+            console.log("[noThankYou] Button clicked.");
+            document.getElementById('forceThankMessage').textContent = `Na, ${userName} thank you to kevu pade! 😤`;
+            showScreen('screen8');
+        }
+
+        // Screen 8: Thank You -> Screen 9 (Final)
+        window.finalThankYou = function() {
+            console.log("[finalThankYou] Button clicked.");
+            showScreen('screen9');
+        }
+
+        // Screen 3: No -> Screen 10 (Not Birthday)
+        window.answerNo = function() {
+            console.log("[answerNo] Button clicked.");
+            showScreen('screen10');
+        }
+
+        // Screen 10: Check Date -> Screen 11
+        window.checkDate = function() {
+            console.log("[checkDate] Button clicked.");
+            const today = new Date();
+            const day = String(today.getDate()).padStart(2, '0');
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+            const year = today.getFullYear();
+            const currentDate = `${day}/${month}/${year}`; // Format: DD/MM/YYYY
+            
+            const finalCharacterDiv = document.getElementById('finalCharacter');
+            const dateResult = document.getElementById('dateResult');
+            const finalMessage = document.getElementById('finalMessage');
+            
+            // Target date: May 30, 2025
+            if (currentDate === '30/05/2025') { 
+                finalCharacterDiv.textContent = '🤨'; // Confused/Thinking
+                dateResult.textContent = 'su khotu bolora, ajj j he!';
+                finalMessage.textContent = 'Byyyy! 👋';
+            } else {
+                finalCharacterDiv.textContent = '😥'; // Sad
+                dateResult.textContent = `Sorry, ajj ${currentDate} che.`;
+                finalMessage.textContent = '30 May na download karje ho... Byyyy! 👋';
+            }
+            showScreen('screen11');
+            console.log(`[checkDate] Date checked. Result: ${dateResult.textContent}`);
+        }
+
+        // Navigate to Messaging Screen (Screen 12)
+        window.goToMessaging = function() {
+            console.log("[goToMessaging] Button clicked.");
+            const messagingHeader = document.getElementById('messagingHeader');
+            if (loggedInAsHet) {
+                messagingHeader.textContent = '💬 Chat with Het (Admin)';
+                document.getElementById('deleteAllMessagesBtn').style.display = 'inline-block'; // Use inline-block or flex
+                document.getElementById('logoutButton').style.display = 'inline-block'; 
+            } else {
+                messagingHeader.textContent = `💬 Chat with Het (${userName || 'Guest'})`;
+                document.getElementById('deleteAllMessagesBtn').style.display = 'none';
+                if (auth.currentUser && !auth.currentUser.isAnonymous) {
+                    document.getElementById('logoutButton').style.display = 'inline-block';
+                } else {
+                    document.getElementById('logoutButton').style.display = 'none';
+                }
+            }
+            document.getElementById('viewAlbumsButton').style.display = 'inline-block';
+
+            loadChatMessages(); 
+            showScreen('screen12');
+            resetNotification(); 
+            // Scroll to bottom of messages when entering chat
+            setTimeout(() => {
+                const messagesContainer = document.getElementById('messagesContainer');
+                if(messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 100); // Small delay to ensure elements are rendered
+            console.log("[goToMessaging] Navigated to messaging screen.");
+        }
+
+        // Restart App
+        window.restartApp = async function() {
+            console.log("[restartApp] Restarting app...");
+            try {
+                if (auth.currentUser) {
+                    await signOut(auth); 
+                    console.log("[restartApp] User logged out during restart.");
+                }
+            } catch (error) {
+                console.error("[restartApp] Error logging out during restart:", error);
+                showMessageBox('Restart Error', `Failed to properly sign out: ${error.message}. Please refresh manually if issues persist.`, 'error');
+            }
+
+            // Reset all relevant global state variables
+            userName = '';
+            localStorage.removeItem('userName'); 
+            currentUserUID = null;
+            giftMessage = '';
+            replyingTo = null;
+            loggedInAsHet = false; 
+            notificationCount = 0;
+            lastMessageTimestamp = 0; 
+            currentAlbumId = null;
+            previousScreenId = 'screen1'; // Reset previous screen
+            currentScreenId = 'screen1'; // Explicitly set current screen to 1
+            
+            // Clear input fields
+            const nameInput = document.getElementById('nameInput');
+            if(nameInput) nameInput.value = ''; 
+            const giftInput = document.getElementById('giftInput');
+            if(giftInput) giftInput.value = '';
+            const messageInput = document.getElementById('messageInput');
+            if(messageInput) messageInput.value = '';
+            cancelReply(); 
+
+            // Detach Firebase listeners
+            if (messagesListener) {
+                const chatRef = dbRef(realtimeDb, 'chat-messages');
+                off(chatRef, 'value', messagesListener);
+                messagesListener = null;
+                console.log("[restartApp] Detached messages listener.");
+            }
+            if (chatNotificationListener) {
+                const chatRef = dbRef(realtimeDb, 'chat-messages'); 
+                off(chatRef, 'value', chatNotificationListener); 
+                chatNotificationListener = null;
+                console.log("[restartApp] Detached chat notification listener.");
+            }
+            
+            resetNotification(); 
+            applyBackgroundImage(null); // Reset background image
+            document.getElementById('hetHoButton').style.display = 'flex'; // Show admin button
+
+            // Navigate to the first screen
+            showScreen('screen1'); 
+            console.log("[restartApp] App restarted. Navigated to screen 1.");
+            // onAuthStateChanged will handle new anonymous sign-in
+        }
+
+        // Send Chat Message
+        window.sendMessage = async function() {
+            console.log("[sendMessage] Button clicked.");
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message) {
+                messageInput.classList.add('error');
+                showMessageBox('Empty Message', 'Message cannot be empty.', 'warning');
+                return; 
+            }
+            messageInput.classList.remove('error');
+            
+            if (!currentUserUID) { 
+                showMessageBox('Authentication Error', 'You must be logged in to send messages. Please refresh or try logging in.', 'error');
+                return;
+            }
+
+            const messageData = {
+                author: loggedInAsHet ? "Het (Admin)" : (userName || "Guest"),
+                message: message,
+                timestamp: new Date().toISOString(),
+                isAdmin: loggedInAsHet,
+                uid: currentUserUID 
+            };
+
+            if (replyingTo) {
+                messageData.replyTo = replyingTo; // Add reply context
+                cancelReply(); 
+            }
+
+            try {
+                const chatRef = dbRef(realtimeDb, 'chat-messages');
+                await push(chatRef, messageData); 
+                messageInput.value = ''; 
+                messageInput.style.height = 'auto'; // Reset textarea height
+                console.log("[sendMessage] Message sent successfully.");
+            } catch (error) {
+                console.error("[sendMessage] Error sending message:", error);
+                showMessageBox('Send Error', `Failed to send message: ${error.message}. Check your internet connection.`, 'error');
+            }
+        }
+
+        // Reply to a specific message
+        window.replyToMessage = function(messageId, originalMessage, originalAuthor) {
+            console.log(`[replyToMessage] Replying to message ID: ${messageId}`);
+            replyingTo = {
+                id: messageId,
+                message: originalMessage,
+                author: originalAuthor
+            };
+            
+            const replyContext = document.getElementById('replyContext');
+            const replyPreview = document.getElementById('replyPreview');
+            
+            // Sanitize originalMessage for display to prevent XSS if it contains HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.textContent = originalMessage;
+            const sanitizedOriginalMessage = tempDiv.innerHTML;
+
+            replyPreview.innerHTML = `
+                <strong>Replying to ${originalAuthor}:</strong><br>
+                <em>${sanitizedOriginalMessage.length > 40 ? sanitizedOriginalMessage.substring(0, 40) + '...' : sanitizedOriginalMessage}</em>
+            `;
+            
+            replyContext.style.display = 'block'; 
+            document.getElementById('messageInput').focus(); 
+        }
+
+        // Cancel the current reply
+        window.cancelReply = function() {
+            console.log("[cancelReply] Reply cancelled.");
+            replyingTo = null;
+            const replyContext = document.getElementById('replyContext');
+            if(replyContext) replyContext.style.display = 'none'; 
+        }
+
+        // Load chat messages from Firebase
+        function loadChatMessages() {
+            console.log("[loadChatMessages] Loading chat messages...");
+            const messagesContainer = document.getElementById('messagesContainer');
+            const loadingIndicator = document.getElementById('messagesLoading');
+            
+            if (!messagesContainer || !loadingIndicator) {
+                console.error("[loadChatMessages] Messages container or loading indicator not found.");
+                return;
+            }
+            
+            loadingIndicator.style.display = 'block'; 
+            messagesContainer.innerHTML = ''; // Clear previous messages before adding loading
+            messagesContainer.appendChild(loadingIndicator);
+            
+            const chatRef = dbRef(realtimeDb, 'chat-messages');
+            if (messagesListener) { // Detach previous listener if any
+                 off(chatRef, 'value', messagesListener);
+                 console.log("[loadChatMessages] Detached existing message listener.");
+            }
+
+            messagesListener = onValue(chatRef, (snapshot) => { 
+                console.log("[loadChatMessages] New chat data received from Firebase.");
+                loadingIndicator.style.display = 'none'; 
+                messagesContainer.innerHTML = ''; // Clear container (including loading indicator)
+                
+                const data = snapshot.val(); 
+                
+                if (data) {
+                    const messages = Object.entries(data).map(([id, msg]) => ({id, ...msg}));
+                    // Sort messages by timestamp
+                    messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    
+                    messages.forEach(message => {
+                        const messageDiv = document.createElement('div');
+                        let bubbleClass = 'message-bubble';
+                        
+                        const isCurrentUserMessage = (currentUserUID && message.uid === currentUserUID);
+
+                        if (message.isAdmin) {
+                            bubbleClass += ' admin';
+                        } else if (isCurrentUserMessage) { 
+                            bubbleClass += ' user';
+                        } 
+                        // Add reply class if it's a reply
+                        if (message.replyTo) { 
+                            bubbleClass += ' reply';
+                            // If an admin is replying, it might need an additional 'admin' class for styling
+                            if (message.isAdmin && !bubbleClass.includes(' admin')) { 
+                                bubbleClass += ' admin'; // Ensure admin replies are styled as admin
+                            }
+                        }
+                        
+                        messageDiv.className = bubbleClass;
+                        
+                        const date = new Date(message.timestamp);
+                        const timeString = date.toLocaleTimeString('en-GB', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        });
+                        
+                        let replyHtml = '';
+                        if (message.replyTo) {
+                            // Sanitize replyTo message content
+                            const tempReplyDiv = document.createElement('div');
+                            tempReplyDiv.textContent = message.replyTo.message;
+                            const sanitizedReplyMessage = tempReplyDiv.innerHTML;
+
+                            replyHtml = `
+                                <div style="background: rgba(0,0,0,0.05); padding: 6px 10px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; border-left: 3px solid rgba(0,0,0,0.2);">
+                                    <strong>↳ ${message.replyTo.author}:</strong><br>
+                                    <em>${sanitizedReplyMessage.length > 40 ? sanitizedReplyMessage.substring(0,40)+'...' : sanitizedReplyMessage}</em>
+                                </div>
+                            `;
+                        }
+                        
+                        // Sanitize main message content
+                        const tempMainMessageDiv = document.createElement('div');
+                        tempMainMessageDiv.textContent = message.message;
+                        const sanitizedMainMessage = tempMainMessageDiv.innerHTML;
+
+                        messageDiv.innerHTML = `
+                            <div class="message-author">${message.author}</div>
+                            ${replyHtml}
+                            <div class="message-text">${sanitizedMainMessage}</div>
+                            <div class="message-time">${timeString}</div>
+                            <div class="message-actions">
+                                <button class="reply-btn" onclick="replyToMessage('${message.id}', '${message.message.replace(/'/g, "\\'")}', '${message.author.replace(/'/g, "\\'")}')"><i class="fas fa-reply"></i></button>
+                                ${loggedInAsHet ? `<button class="delete-btn" onclick="deleteMessage('${message.id}')"><i class="fas fa-trash"></i></button>` : ''}
+                            </div>
+                        `;
+                        
+                        messagesContainer.appendChild(messageDiv);
+                    });
+                    console.log(`[loadChatMessages] Displayed ${messages.length} messages.`);
+                } else {
+                    messagesContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No messages yet! Start the conversation 💬</p>';
+                    console.log("[loadChatMessages] No messages found.");
+                }
+                
+                messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to the bottom
+            }, (error) => {
+                console.error("[loadChatMessages] Firebase Realtime Database read failed:", error);
+                if(loadingIndicator) loadingIndicator.style.display = 'none';
+                if(messagesContainer) messagesContainer.innerHTML = `<p style="text-align: center; color: red; padding: 20px;">Error loading messages: ${error.message}</p>`;
+                showMessageBox('Loading Error', `Failed to load messages: ${error.message}`, 'error');
+            });
+        }
+
+
+        // Setup notification listener for new messages
+        function setupNotificationListener() {
+            console.log("[setupNotificationListener] Setting up chat notification listener.");
+            const chatRef = dbRef(realtimeDb, 'chat-messages');
+            if (chatNotificationListener) { 
+                off(chatRef, 'value', chatNotificationListener); 
+                console.log("[setupNotificationListener] Detached existing notification listener.");
+            }
+
+            chatNotificationListener = onValue(chatRef, (snapshot) => { 
+                const data = snapshot.val();
+                let newMessagesArrived = false;
+                let latestTimestampInBatch = lastMessageTimestamp;
+                let firstNewMessageInfo = null;
+
+                if (data) {
+                    const messages = Object.values(data); // No need to map to entries here
+                    messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+                    messages.forEach(message => {
+                        const messageTimestamp = new Date(message.timestamp).getTime();
+                        let isConsideredNewForNotification = false;
+
+                        // Only consider messages newer than the last known timestamp
+                        if (messageTimestamp > lastMessageTimestamp) {
+                            if (loggedInAsHet) { // Admin is logged in
+                                if (!message.isAdmin) { // Notification for non-admin messages
+                                    isConsideredNewForNotification = true;
+                                }
+                            } else if (currentUserUID) { // Regular user is logged in
+                                // Notify if message is from admin OR from another user (not self)
+                                if (message.isAdmin || (message.uid !== currentUserUID)) {
+                                   isConsideredNewForNotification = true;
+                                }
+                            }
+                        }
+
+                        if (isConsideredNewForNotification) {
+                            newMessagesArrived = true;
+                            if (!firstNewMessageInfo) { // Capture details of the first new message for notification
+                                firstNewMessageInfo = {
+                                    author: message.author,
+                                    text: message.message.substring(0, 50) + (message.message.length > 50 ? '...' : '')
+                                };
+                            }
+                        }
+                        // Update the latest timestamp encountered in this batch
+                        if (messageTimestamp > latestTimestampInBatch) {
+                            latestTimestampInBatch = messageTimestamp;
+                        }
+                    });
+                }
+
+                // Update the global lastMessageTimestamp with the newest message from this batch
+                if (latestTimestampInBatch > lastMessageTimestamp) {
+                    lastMessageTimestamp = latestTimestampInBatch;
+                }
+
+                // If new messages arrived AND user is not on chat screen
+                if (newMessagesArrived && currentScreenId !== 'screen12') {
+                    incrementNotification(); 
+                    console.log("[setupNotificationListener] New message notification triggered.");
+
+                    // Show system notification if permission granted
+                    if (Notification.permission === "granted" && firstNewMessageInfo) {
+                        try {
+                            const notification = new Notification(`New Message from ${firstNewMessageInfo.author}`, {
+                                body: firstNewMessageInfo.text,
+                                icon: './favicon.ico', // Optional: Add an icon URL
+                                tag: "birthday-chat-message" // Helps group notifications
+                            });
+                            notification.onclick = function() {
+                                window.focus(); // Bring window to front
+                                // Navigate to the appropriate screen
+                                if (loggedInAsHet && currentScreenId !== 'screen13') { 
+                                   goToAdminPanel(); 
+                                } else { 
+                                   goToMessaging(); 
+                                }
+                                this.close(); // Close notification on click
+                            };
+                        } catch (e) {
+                            console.error("[setupNotificationListener] Error showing system notification:", e);
+                        }
+                    }
+                } else if (currentScreenId === 'screen12') { // If on chat screen, reset badge
+                    resetNotification();
+                }
+            }, (error) => {
+                console.error("[setupNotificationListener] Firebase notification listener error:", error);
+                // Optionally inform user about listener failure
+                // showMessageBox('Realtime Error', 'Connection to chat updates lost. Please refresh.', 'error');
+            });
+        }
+        
+        // Request permission for system notifications
+        function requestSystemNotificationPermission() {
+            if (!("Notification" in window)) {
+                console.log("This browser does not support desktop notification");
+            } else if (Notification.permission === "granted") {
+                console.log("Notification permission already granted.");
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(function (permission) {
+                    if (permission === "granted") {
+                        new Notification("Notifications Enabled!", { 
+                            body: "You'll now receive chat updates.",
+                            icon: './favicon.ico', // Optional
+                            tag: "birthday-app-setup"
+                        });
+                        console.log("Notification permission granted.");
+                    } else {
+                        console.log("Notification permission denied.");
+                    }
+                });
+            }
+        }
+
+
+        // Delete a specific message (admin only)
+        window.deleteMessage = function(messageId) {
+            console.log(`[deleteMessage] Attempting to delete message ID: ${messageId}`);
+            if (!loggedInAsHet) { 
+                showMessageBox('Access Denied', 'Only admin can delete messages.', 'error');
+                return;
+            }
+            showMessageBox('Confirm Delete', 'Are you sure you want to delete this message?', true, async () => {
+                try {
+                    const messageRef = dbRef(realtimeDb, `chat-messages/${messageId}`);
+                    await remove(messageRef);
+                    showMessageBox('Success', 'Message deleted successfully.', 'success');
+                    console.log(`[deleteMessage] Message ID: ${messageId} deleted from Firebase.`);
+                    // Messages will refresh automatically due to onValue listener
+                }
+                catch (error) {
+                    console.error("[deleteMessage] Failed to delete message:", error);
+                    showMessageBox('Delete Error', `Failed to delete message: ${error.message}`, 'error');
+                }
+            }, 'warning', 'Yes, Delete', 'No, Cancel'); 
+        }
+
+        // Delete all messages (admin only)
+        window.deleteAllMessages = function() {
+            console.log("[deleteAllMessages] Attempting to delete all messages.");
+            if (!loggedInAsHet) { 
+                showMessageBox('Access Denied', 'Only admin can delete all messages.', 'error');
+                return;
+            }
+            showMessageBox('Confirm Delete All', 'DANGER! Are you sure you want to delete ALL messages? This cannot be undone!', true, async () => {
+                try {
+                    const chatRef = dbRef(realtimeDb, 'chat-messages');
+                    await remove(chatRef);
+                    showMessageBox('Success', 'All messages have been deleted.', 'success');
+                    console.log("[deleteAllMessages] All messages deleted from Firebase.");
+                } catch (error) {
+                    console.error("[deleteAllMessages] Failed to delete all messages:", error);
+                    showMessageBox('Delete Error', `Failed to delete all messages: ${error.message}`, 'error');
+                }
+            }, 'error', 'Yes, Delete All!', 'No, Keep Them'); // Use error type for strong warning
+        }
+
+        // --- Custom Message Box ---
+        let messageBoxConfirmCallback = null;
+
+        function showMessageBox(title, content, isConfirm = false, callback = null, type = 'info', confirmText = 'Yes', cancelText = 'No') {
+            console.log(`[showMessageBox] Displaying: ${title} - ${content}`);
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            const messageBoxTitle = document.getElementById('messageBoxTitle');
+            const messageBoxContent = document.getElementById('messageBoxContent');
+            const messageBoxButtons = document.getElementById('messageBoxButtons');
+
+            if(!messageBoxOverlay || !messageBoxTitle || !messageBoxContent || !messageBoxButtons) {
+                console.error("[showMessageBox] Message box elements not found! Falling back to alert.");
+                alert(`${title}\n${content}`); // Fallback to native alert
+                return;
+            }
+
+            messageBoxTitle.innerHTML = `<i class="fas ${getIconClass(type)}"></i> ${title}`;
+            messageBoxContent.textContent = content;
+            messageBoxButtons.innerHTML = ''; 
+
+            if (isConfirm) {
+                const yesButton = document.createElement('button');
+                yesButton.textContent = confirmText;
+                yesButton.className = (type === 'error' || type === 'warning') ? 'no-btn' : 'yes-btn'; // Style based on severity
+                yesButton.onclick = () => {
+                    if (messageBoxConfirmCallback) messageBoxConfirmCallback();
+                    closeMessageBox();
+                };
+                messageBoxButtons.appendChild(yesButton);
+
+                const noButton = document.createElement('button');
+                noButton.textContent = cancelText;
+                noButton.className = 'secondary-btn'; // Neutral cancel
+                noButton.onclick = closeMessageBox;
+                messageBoxButtons.appendChild(noButton);
+                messageBoxConfirmCallback = callback;
+            } else {
+                const okButton = document.createElement('button');
+                okButton.textContent = 'OK';
+                okButton.className = 'yes-btn'; // Default OK button style
+                // Add a close button to the top right for non-confirm dialogs
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'message-box-close';
+                closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                closeBtn.onclick = closeMessageBox;
+                if (!messageBoxOverlay.querySelector('.message-box-close')) { // Add if not already present
+                     messageBoxOverlay.querySelector('.message-box').prepend(closeBtn);
+                }
+
+                okButton.onclick = closeMessageBox;
+                messageBoxButtons.appendChild(okButton);
+                messageBoxConfirmCallback = null;
+            }
+            messageBoxOverlay.style.display = 'flex';
+        }
+
+        window.closeMessageBox = function() { // Make it globally accessible
+            console.log("[closeMessageBox] Closing message box.");
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            if(messageBoxOverlay) messageBoxOverlay.style.display = 'none';
+            messageBoxConfirmCallback = null;
+            // Remove the dynamically added close button for non-confirm dialogs
+            const dynamicCloseBtn = messageBoxOverlay.querySelector('.message-box .message-box-close');
+            if (dynamicCloseBtn && !messageBoxOverlay.querySelector('#messageBoxButtons button:nth-child(2)')) { // if not a confirm dialog
+                // dynamicCloseBtn.remove(); // This might cause issues if modal is reused. Better to hide/show.
+            }
+        }
+
+        function getIconClass(type) {
+            switch (type) {
+                case 'success': return 'fa-check-circle';
+                case 'error': return 'fa-times-circle';
+                case 'warning': return 'fa-exclamation-triangle';
+                case 'info': return 'fa-info-circle';
+                default: return 'fa-info-circle';
+            }
+        }
+
+
+        // --- Modals (Resume, Admin Login) ---
+        function clearAuthErrorMessages() {
+            const resumeError = document.getElementById('resumeErrorMessage');
+            if(resumeError) resumeError.textContent = '';
+            const adminLoginError = document.getElementById('adminLoginErrorMessage');
+            if(adminLoginError) adminLoginError.textContent = '';
+            
+            const nameInput = document.getElementById('nameInput');
+            if(nameInput) nameInput.classList.remove('error');
+            const resumeNameInput = document.getElementById('resumeNameInput');
+            if(resumeNameInput) resumeNameInput.classList.remove('error');
+            const adminEmailInput = document.getElementById('adminEmailInput');
+            if(adminEmailInput) adminEmailInput.classList.remove('error');
+            const adminPasswordInput = document.getElementById('adminPasswordInput');
+            if(adminPasswordInput) adminPasswordInput.classList.remove('error');
+        }
+
+        window.showResumeModal = function() {
+            console.log("[showResumeModal] Button clicked.");
+            clearAuthErrorMessages();
+            const resumeNameInput = document.getElementById('resumeNameInput');
+            if(resumeNameInput) {
+                resumeNameInput.value = localStorage.getItem('userName') || ''; 
+                resumeNameInput.focus();
+            }
+            const resumeModalOverlay = document.getElementById('resumeModalOverlay');
+            if(resumeModalOverlay) resumeModalOverlay.style.display = 'flex';
+        }
+        window.closeResumeModal = function() { 
+            console.log("[closeResumeModal] Closing resume modal.");
+            const resumeModalOverlay = document.getElementById('resumeModalOverlay');
+            if(resumeModalOverlay) resumeModalOverlay.style.display = 'none';
+            clearAuthErrorMessages();
+        }
+
+        window.resumeSession = function() {
+            console.log("[resumeSession] Attempting to resume session.");
+            const resumeNameInput = document.getElementById('resumeNameInput');
+            const name = resumeNameInput.value.trim();
+            if (!name) {
+                resumeNameInput.classList.add('error');
+                document.getElementById('resumeErrorMessage').textContent = 'Please enter your name.';
+                return;
+            }
+            userName = name;
+            localStorage.setItem('userName', userName); 
+            closeResumeModal();
+            // If user was anonymous, this effectively sets their display name for the session
+            // Then proceed to screen 2 or messaging based on current state
+            if (currentScreenId === 'screen1' || !currentUserUID) {
+                 goToScreen2(); // Typical flow from start
+            } else {
+                 goToMessaging(); // If already past initial screens, go to chat
+            }
+            console.log(`[resumeSession] Session resumed for user: ${userName}`);
+        }
+
+        window.showAdminLoginModal = function() {
+            console.log("[showAdminLoginModal] Button clicked.");
+            clearAuthErrorMessages();
+            const adminEmailInput = document.getElementById('adminEmailInput');
+            if(adminEmailInput) {
+                adminEmailInput.value = '';
+                adminEmailInput.focus();
+            }
+            const adminPasswordInput = document.getElementById('adminPasswordInput');
+            if(adminPasswordInput) adminPasswordInput.value = '';
+
+            const adminLoginModalOverlay = document.getElementById('adminLoginModalOverlay');
+            if(adminLoginModalOverlay) adminLoginModalOverlay.style.display = 'flex';
+        }
+        window.closeAdminLoginModal = function() {
+            console.log("[closeAdminLoginModal] Closing admin login modal.");
+            const adminLoginModalOverlay = document.getElementById('adminLoginModalOverlay');
+            if(adminLoginModalOverlay) adminLoginModalOverlay.style.display = 'none';
+            clearAuthErrorMessages();
+        }
+
+        window.adminLogin = async function() {
+            console.log("[adminLogin] Attempting admin login.");
+            const emailInput = document.getElementById('adminEmailInput');
+            const passwordInput = document.getElementById('adminPasswordInput');
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            const errorMessageElement = document.getElementById('adminLoginErrorMessage');
+            
+            emailInput.classList.remove('error');
+            passwordInput.classList.remove('error');
+            errorMessageElement.textContent = '';
+
+            if (!email || !password) {
+                if (!email) emailInput.classList.add('error');
+                if (!password) passwordInput.classList.add('error');
+                errorMessageElement.textContent = 'Admin email and password are required.';
+                console.warn("[adminLogin] Admin email or password missing.");
+                return;
+            }
+
+            try {
+                if (auth.currentUser && auth.currentUser.isAnonymous) {
+                    await signOut(auth); // Sign out anonymous user before admin login
+                    console.log("[adminLogin] Signed out anonymous user for admin login.");
+                }
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                // currentUserUID will be set by onAuthStateChanged
+
+                // Check if adminUID is fetched and matches
+                if (!adminUID) { // If adminUID wasn't fetched on startup, try again
+                    await fetchAdminUID(); 
+                }
+
+                if (adminUID && user.uid === adminUID) { // Successfully logged in as admin
+                    loggedInAsHet = true;
+                    const adminUserRef = dbRef(realtimeDb, `users/${user.uid}/name`); // Get admin's name
+                    const adminSnapshot = await get(adminUserRef);
+                    userName = adminSnapshot.exists() ? adminSnapshot.val() : "Het (Admin)";
+                    
+                    closeAdminLoginModal();
+                    goToAdminPanel(); 
+                    document.getElementById('hetHoButton').style.display = 'none'; 
+                    console.log("[adminLogin] Successfully logged in as designated admin.");
+                } else if (!adminUID && user) { // First ever login, potentially setting this user as admin
+                     await set(dbRef(realtimeDb, 'adminUID'), user.uid);
+                     adminUID = user.uid;
+                     loggedInAsHet = true;
+                     userName = "Het (Admin)"; // Default name for new admin
+                     await set(dbRef(realtimeDb, `users/${user.uid}`), { name: userName, email: user.email });
+                     showMessageBox('Admin Setup', 'This account is now the designated admin.', 'success');
+                     closeAdminLoginModal();
+                     goToAdminPanel();
+                     document.getElementById('hetHoButton').style.display = 'none';
+                     console.log("[adminLogin] New admin account set up and logged in.");
+                }
+                else { // Not the designated admin
+                    errorMessageElement.textContent = 'You are not authorized as admin.';
+                    loggedInAsHet = false;
+                    await signOut(auth); // Log out non-admin
+                    showMessageBox('Access Denied', 'The provided credentials are not for the designated admin account.', 'error');
+                    console.warn("[adminLogin] Login failed: User is not the designated admin.");
+                }
+            } catch (error) {
+                console.error("[adminLogin] Admin login error:", error);
+                let message = 'Admin login failed. Please try again.';
+                switch (error.code) {
+                    case 'auth/invalid-email':
+                    case 'auth/user-not-found':
+                    case 'auth/wrong-password':
+                    case 'auth/invalid-credential': // For newer SDK versions
+                        message = 'Invalid admin email or password.';
+                        emailInput.classList.add('error');
+                        passwordInput.classList.add('error');
+                        break;
+                    case 'auth/network-request-failed':
+                        message = 'Network error. Please check your internet connection.';
+                        break;
+                    default:
+                        message = `Login Error: ${error.message}`;
+                }
+                errorMessageElement.textContent = message;
+            }
+        }
+
+        window.logoutUser = async function() { // For regular logged-in (non-admin) users
+            console.log("[logoutUser] Attempting user logout.");
+            try {
+                if (auth.currentUser && !auth.currentUser.isAnonymous) {
+                    await signOut(auth);
+                    showMessageBox('Logged Out', 'You have been successfully logged out.', 'info');
+                    console.log("[logoutUser] User logged out.");
+                    // onAuthStateChanged will handle UI reset and anonymous sign-in
+                } else {
+                    showMessageBox('Info', 'You are browsing as a guest. To start over, use "Start Again".', 'info');
+                    console.log("[logoutUser] User is anonymous, no explicit logout needed.");
+                }
+            } catch (error) {
+                console.error("[logoutUser] Error logging out user:", error);
+                showMessageBox('Logout Error', `Failed to log out: ${error.message}`, 'error');
+            }
+        }
+
+        window.logoutAdmin = async function() {
+            console.log("[logoutAdmin] Attempting admin logout.");
+            try {
+                if (auth.currentUser) { // Sign out any current user, admin or otherwise
+                    await signOut(auth);
+                    showMessageBox('Logged Out', 'You have been logged out as admin.', 'info');
+                    console.log("[logoutAdmin] Admin logged out.");
+                }
+                loggedInAsHet = false; // Explicitly set admin status to false
+                // onAuthStateChanged will handle UI reset and anonymous sign-in.
+                // Admin button should reappear.
+            } catch (error) {
+                console.error("[logoutAdmin] Error logging out admin:", error);
+                showMessageBox('Logout Error', `Failed to log out admin: ${error.message}`, 'error');
+            }
+        }
+
+
+        // --- Admin Panel & Album Features ---
+
+        window.goToAdminPanel = function() {
+            console.log("[goToAdminPanel] Button clicked.");
+            if (loggedInAsHet) {
+                showScreen('screen13');
+                loadAlbumsForAdmin(); 
+                loadBackgroundImagePreview(); // Load preview when entering admin panel
+            } else {
+                showMessageBox('Access Denied', 'You must be logged in as admin to access this panel.', 'error');
+                showAdminLoginModal(); // Prompt admin login
+            }
+        }
+
+        // Open Uploadcare modal
+        window.openUploadModal = function(purpose, albumId = null, albumName = '') {
+            console.log(`[openUploadModal] Called for purpose: ${purpose}, albumId: ${albumId}, albumName: ${albumName}`);
+            if (!loggedInAsHet) {
+                showMessageBox('Access Denied', 'Only admin can upload files.', 'error');
+                return;
+            }
+
+            currentUploadPurpose = purpose;
+            currentAlbumIdForUpload = albumId;
+
+            const uploadModalTitle = document.getElementById('uploadModalTitle');
+            const uploadStatusElement = document.getElementById('uploadStatus');
+            
+            if(!uploadModalTitle || !uploadStatusElement || !appFileUploader) {
+                console.error("[openUploadModal] Upload modal elements not found or appFileUploader not initialized!");
+                showMessageBox('Upload Error', 'Uploader component not ready. Please try again or refresh.', 'error');
+                return;
+            }
+            
+            uploadStatusElement.textContent = ''; // Clear previous status
+            
+            // Set Uploadcare uploader properties dynamically
+            if (purpose === 'background') {
+                uploadModalTitle.innerHTML = '<i class="fas fa-image"></i> Upload Background Image';
+                appFileUploader.setAttribute('multiple', 'false');
+                appFileUploader.setAttribute('img-only', 'true');
+                appFileUploader.setAttribute('source-list', 'local, url, camera');
+                console.log("[openUploadModal] Uploadcare config for background set.");
+            } else if (purpose === 'album_media') {
+                uploadModalTitle.innerHTML = `<i class="fas fa-photo-video"></i> Upload Media to "${albumName}"`;
+                appFileUploader.setAttribute('multiple', 'true');
+                appFileUploader.setAttribute('img-only', 'false');
+                appFileUploader.setAttribute('source-list', 'local, url, camera, dropbox, gdrive');
+                console.log("[openUploadModal] Uploadcare config for album media set.");
+            }
+            
+            // Clear previous files in the uploader to ensure fresh selection
+            if (typeof appFileUploader.clearValue === 'function') { 
+                 appFileUploader.clearValue(); 
+                 console.log("[openUploadModal] Uploadcare uploader value cleared.");
+            } else if (appFileUploader.value) {
+                 appFileUploader.value = null; 
+                 console.log("[openUploadModal] Uploadcare uploader value set to null.");
+            }
+
+
+            document.getElementById('uploadModalOverlay').style.display = 'flex';
+            console.log("[openUploadModal] Upload modal displayed.");
+        }
+
+        window.closeUploadModal = function() {
+            console.log("[closeUploadModal] Closing upload modal.");
+            document.getElementById('uploadModalOverlay').style.display = 'none';
+            currentUploadPurpose = null;
+            currentAlbumIdForUpload = null;
+            const uploadStatus = document.getElementById('uploadStatus');
+            if(uploadStatus) uploadStatus.textContent = '';
+            if (appFileUploader && typeof appFileUploader.clearValue === 'function') { 
+                 appFileUploader.clearValue();
+                 console.log("[closeUploadModal] Uploadcare uploader value cleared on modal close.");
+            } else if (appFileUploader && appFileUploader.value) {
+                 appFileUploader.value = null;
+                 console.log("[closeUploadModal] Uploadcare uploader value set to null on modal close.");
+            }
+        }
+
+        // Handler for Uploadcare 'change' event (files selected/uploaded)
+        async function handleUploadcareChange(event) {
+            console.log("[handleUploadcareChange] Uploadcare 'change' event fired!", event);
+            // event.detail.allEntries contains entries for all files that went through the process
+            // filter for successful uploads
+            const files = event.detail.allEntries.filter(f => f.status === 'success').map(f => f.fileInfo);
+            const uploadStatusElement = document.getElementById('uploadStatus');
+
+            if (!files || files.length === 0) {
+                if(uploadStatusElement) uploadStatusElement.textContent = 'No files uploaded or upload cancelled.';
+                console.warn("[handleUploadcareChange] No successful files found in Uploadcare change event.");
+                return;
+            }
+
+            if(uploadStatusElement) uploadStatusElement.textContent = `Processing ${files.length} file(s)...`;
+            console.log("[handleUploadcareChange] Successfully uploaded files (fileInfo):", files);
+            
+            try {
+                if (currentUploadPurpose === 'background') {
+                    if (files.length > 1) {
+                        showMessageBox('Multiple Files', 'Only one image can be set as background. Using the first uploaded image.', 'warning');
+                    }
+                    const fileInfo = files[0]; 
+                    const imageUrl = fileInfo.cdnUrl;
+                    const fileUuid = fileInfo.uuid;
+
+                    console.log("[handleUploadcareChange] Setting background image. URL:", imageUrl, "UUID:", fileUuid);
+                    const bgSettingsRef = dbRef(realtimeDb, 'background-settings/currentBackground');
+                    await set(bgSettingsRef, { url: imageUrl, uuid: fileUuid });
+                    applyBackgroundImage(imageUrl);
+                    loadBackgroundImagePreview(); // Update preview in admin panel
+                    showMessageBox('Success', 'Chat background image has been set!', 'success');
+                    closeUploadModal();
+                    console.log("[handleUploadcareChange] Background image updated.");
+
+                } else if (currentUploadPurpose === 'album_media' && currentAlbumIdForUpload) {
+                    let uploadedCount = 0;
+                    const mediaRef = dbRef(realtimeDb, `media/${currentAlbumIdForUpload}`);
+                    console.log(`[handleUploadcareChange] Uploading media to album ID: ${currentAlbumIdForUpload}`);
+
+                    for (const fileInfo of files) {
+                        const mediaUrl = fileInfo.cdnUrl;
+                        const fileUuid = fileInfo.uuid;
+
+                        let fileType = 'other';
+                        if (fileInfo.mimeType && fileInfo.mimeType.startsWith('image/')) {
+                            fileType = 'image';
+                        } else if (fileInfo.mimeType && fileInfo.mimeType.startsWith('video/')) {
+                            fileType = 'video';
+                        }
+                        console.log(`[handleUploadcareChange] Processing file: ${fileInfo.originalFilename}, Type: ${fileType}, URL: ${mediaUrl}`);
+
+                        await push(mediaRef, {
+                            name: fileInfo.originalFilename || `file_${Date.now()}`,
+                            type: fileType,
+                            url: mediaUrl,
+                            uuid: fileUuid,
+                            uploadedAt: new Date().toISOString(),
+                            uploadedBy: currentUserUID // Admin's UID
+                        });
+                        uploadedCount++;
+                        if(uploadStatusElement) uploadStatusElement.textContent = `Uploaded ${uploadedCount} of ${files.length} files.`;
+                    }
+                    showMessageBox('Upload Complete', `${uploadedCount} media item(s) uploaded to the album successfully!`, 'success');
+                    if (currentScreenId === 'screen15' && currentAlbumId === currentAlbumIdForUpload) {
+                        // Refresh album view if currently viewing the updated album
+                        viewAlbum(currentAlbumIdForUpload, document.getElementById('currentAlbumName').textContent.replace('<i class="fas fa-folder-open"></i> ', ''), loggedInAsHet);
+                    }
+                    closeUploadModal();
+                    console.log(`[handleUploadcareChange] ${uploadedCount} media items uploaded to album.`);
+                }
+            } catch (e) {
+                console.error("[handleUploadcareChange] Error during Uploadcare file processing:", e);
+                if(uploadStatusElement) uploadStatusElement.textContent = 'Error processing files.';
+                showMessageBox('Upload Error', `Failed to process uploaded files: ${e.message}`, 'error');
+            }
+        }
+        
+        // Load and apply chat background image
+        async function loadBackgroundImage() {
+            console.log("[loadBackgroundImage] Attempting to load background image.");
+            const bgSettingsRef = dbRef(realtimeDb, 'background-settings/currentBackground');
+            try {
+                const snapshot = await get(bgSettingsRef);
+                if (snapshot.exists() && snapshot.val().url) {
+                    const bgUrl = snapshot.val().url;
+                    console.log("[loadBackgroundImage] Fetched background URL from Firebase:", bgUrl);
+                    applyBackgroundImage(bgUrl);
+                } else {
+                    applyBackgroundImage(null); // No background set or URL is missing
+                    console.log("[loadBackgroundImage] No background image found in Firebase, applying default.");
+                }
+            } catch (e) {
+                console.error("[loadBackgroundImage] Error loading background image from Firebase: ", e);
+                // Don't show a blocking error, just log it.
+            }
+        }
+
+        function applyBackgroundImage(url) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer) {
+                if (url) {
+                    messagesContainer.style.backgroundImage = `url('${url}')`;
+                    messagesContainer.classList.add('has-background'); // Add class to show overlay
+                    console.log("[applyBackgroundImage] Background image applied:", url);
+                } else {
+                    messagesContainer.style.backgroundImage = 'none';
+                    messagesContainer.classList.remove('has-background'); // Remove class to hide overlay
+                    console.log("[applyBackgroundImage] Background image removed.");
+                }
+            }
+        }
+
+        // Load and display background image preview in admin panel
+        async function loadBackgroundImagePreview() {
+            console.log("[loadBackgroundImagePreview] Loading background image preview for admin panel.");
+            const backgroundPreviewDiv = document.getElementById('backgroundPreview');
+            if (!backgroundPreviewDiv) return;
+
+            const bgSettingsRef = dbRef(realtimeDb, 'background-settings/currentBackground');
+            try {
+                const snapshot = await get(bgSettingsRef);
+                if (snapshot.exists() && snapshot.val().url) {
+                    const imageUrl = snapshot.val().url;
+                    backgroundPreviewDiv.innerHTML = `<img src="${imageUrl}/-/preview/240x120/-/quality/smart_retina/" alt="Current Background" onerror="this.onerror=null;this.src='https://placehold.co/240x120/f8d7da/c82333?text=Error';">`;
+                    console.log("[loadBackgroundImagePreview] Preview image set:", imageUrl);
+                } else {
+                    backgroundPreviewDiv.innerHTML = '<span class="placeholder-text">No background image set.</span>';
+                    console.log("[loadBackgroundImagePreview] No background image for preview.");
+                }
+            } catch (e) {
+                console.error("[loadBackgroundImagePreview] Error loading background image preview:", e);
+                backgroundPreviewDiv.innerHTML = '<span class="placeholder-text" style="color: red;">Error loading preview.</span>';
+            }
+        }
+
+
+        window.removeBackgroundImage = async function() {
+            console.log("[removeBackgroundImage] Attempting to remove background image.");
+            if (!loggedInAsHet) { 
+                showMessageBox('Access Denied', 'Only admin can remove the background image.', 'error');
+                return;
+            }
+            showMessageBox('Confirm Removal', 'Are you sure you want to remove the chat background image?', true, async () => {
+                try {
+                    const bgSettingsRef = dbRef(realtimeDb, 'background-settings/currentBackground');
+                    await remove(bgSettingsRef);
+                    applyBackgroundImage(null); 
+                    loadBackgroundImagePreview(); // Update preview in admin panel
+                    showMessageBox('Success', 'Chat background image has been removed.', 'success');
+                    console.log("[removeBackgroundImage] Background image removed from Firebase.");
+                } catch (e) {
+                    console.error("[removeBackgroundImage] Error removing background image:", e);
+                    showMessageBox('Error', `Failed to remove background image: ${e.message}`, 'error');
+                }
+            }, 'warning', 'Yes, Remove', 'No, Keep');
+        }
+
+        // Create a new album (admin only)
+        window.createAlbum = async function() {
+            console.log("[createAlbum] Attempting to create new album.");
+            if (!loggedInAsHet) { 
+                showMessageBox('Access Denied', 'Only admin can create albums.', 'error');
+                return;
+            }
+            const newAlbumNameInput = document.getElementById('newAlbumNameInput');
+            const albumName = newAlbumNameInput.value.trim();
+            if (!albumName) {
+                newAlbumNameInput.classList.add('error');
+                showMessageBox('Input Required', 'Please enter a name for the new album.', 'warning');
+                return;
+            }
+            newAlbumNameInput.classList.remove('error');
+
+            try {
+                // Check for duplicate album name (case-insensitive)
+                const albumsRef = dbRef(realtimeDb, 'albums');
+                const snapshot = await get(albumsRef);
+                if (snapshot.exists()) {
+                    const existingAlbums = snapshot.val();
+                    const isDuplicate = Object.values(existingAlbums).some(
+                        album => album.name.toLowerCase() === albumName.toLowerCase()
+                    );
+                    if (isDuplicate) {
+                        showMessageBox('Duplicate Name', `An album named "${albumName}" already exists. Please choose a different name.`, 'warning');
+                        console.warn(`[createAlbum] Album creation failed: Duplicate name "${albumName}".`);
+                        return;
+                    }
+                }
+
+                await push(albumsRef, {
+                    name: albumName,
+                    createdAt: new Date().toISOString(),
+                    createdBy: currentUserUID // Admin's UID
+                });
+                newAlbumNameInput.value = ''; // Clear input
+                showMessageBox('Success', `Album "${albumName}" created successfully!`, 'success');
+                loadAlbumsForAdmin(); // Refresh album list in admin panel
+                console.log(`[createAlbum] Album "${albumName}" created.`);
+            } catch (e) {
+                console.error("[createAlbum] Error creating album: ", e);
+                showMessageBox('Creation Error', `Failed to create album: ${e.message}`, 'error');
+            }
+        }
+
+        // Load albums for the admin panel
+        async function loadAlbumsForAdmin() {
+            console.log("[loadAlbumsForAdmin] Loading albums for admin panel.");
+            const albumListElement = document.getElementById('albumList');
+            if (!albumListElement) {
+                console.error("[loadAlbumsForAdmin] Album list element not found.");
+                return;
+            }
+
+            albumListElement.innerHTML = '<div class="loading">Loading albums...</div>';
+            const albumsRef = dbRef(realtimeDb, 'albums');
+            try {
+                onValue(albumsRef, (snapshot) => { // Use onValue for real-time updates
+                    albumListElement.innerHTML = ''; // Clear previous list
+                    if (snapshot.exists()) {
+                        const albumsData = snapshot.val();
+                        let albums = Object.entries(albumsData).map(([id, album]) => ({id, ...album}));
+                        albums.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort newest first
+
+                        if (albums.length === 0) {
+                            albumListElement.innerHTML = '<p style="text-align: center; color: #666; padding: 15px;">No albums created yet.</p>';
+                            console.log("[loadAlbumsForAdmin] No albums found.");
+                            return;
+                        }
+                        albums.forEach(album => {
+                            const albumItem = document.createElement('li');
+                            albumItem.className = 'album-item';
+                            albumItem.innerHTML = `
+                                <span>${album.name}</span>
+                                <div class="album-actions">
+                                    <button onclick="openUploadModal('album_media', '${album.id}', '${album.name.replace(/'/g, "\\'")}')" title="Add Media"><i class="fas fa-plus"></i></button>
+                                    <button onclick="viewAlbum('${album.id}', '${album.name.replace(/'/g, "\\'")}', true)" title="View Media"><i class="fas fa-eye"></i></button>
+                                    <button class="no-btn" onclick="deleteAlbum('${album.id}', '${album.name.replace(/'/g, "\\'")}')" title="Delete Album"><i class="fas fa-trash"></i></button>
+                                </div>
+                            `;
+                            albumListElement.appendChild(albumItem);
+                        });
+                        console.log(`[loadAlbumsForAdmin] Loaded ${albums.length} albums for admin panel.`);
+                    } else {
+                        albumListElement.innerHTML = '<p style="text-align: center; color: #666; padding: 15px;">No albums created yet.</p>';
+                        console.log("[loadAlbumsForAdmin] No albums found for admin panel.");
+                    }
+                }, { onlyOnce: false }); // Keep listening for changes
+            } catch (e) {
+                console.error("[loadAlbumsForAdmin] Error loading albums for admin: ", e);
+                albumListElement.innerHTML = `<p style="text-align: center; color: red; padding: 15px;">Failed to load albums: ${e.message}</p>`;
+            }
+        }
+        
+        // Load albums for the user view (Screen 14)
+        async function loadAlbumsForUser() {
+            console.log("[loadAlbumsForUser] Loading albums for user view.");
+            const userAlbumListElement = document.getElementById('userAlbumList');
+            if (!userAlbumListElement) {
+                console.error("[loadAlbumsForUser] User album list element not found.");
+                return;
+            }
+
+            userAlbumListElement.innerHTML = '<div class="loading">Loading albums...</div>';
+            const albumsRef = dbRef(realtimeDb, 'albums');
+            try {
+                 onValue(albumsRef, (snapshot) => { // Real-time updates
+                    userAlbumListElement.innerHTML = '';
+                    if (snapshot.exists()) {
+                        const albumsData = snapshot.val();
+                        let albums = Object.entries(albumsData).map(([id, album]) => ({id, ...album}));
+                        albums.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                        if (albums.length === 0) {
+                            userAlbumListElement.innerHTML = '<p style="text-align: center; color: #666; padding: 15px;">No photo/video albums available yet.</p>';
+                            console.log("[loadAlbumsForUser] No albums found for user view.");
+                            return;
+                        }
+                        albums.forEach(album => {
+                            const userAlbumItem = document.createElement('li');
+                            userAlbumItem.className = 'album-item'; // Re-use styling
+                            userAlbumItem.innerHTML = `<span><i class="fas fa-images" style="margin-right: 8px; color: #845ef7;"></i>${album.name}</span>`;
+                            userAlbumItem.onclick = () => viewAlbum(album.id, album.name, false); // false for isAdminView
+                            userAlbumListElement.appendChild(userAlbumItem);
+                        });
+                        console.log(`[loadAlbumsForUser] Loaded ${albums.length} albums for user view.`);
+                    } else {
+                        userAlbumListElement.innerHTML = '<p style="text-align: center; color: #666; padding: 15px;">No photo/video albums available yet.</p>';
+                        console.log("[loadAlbumsForUser] No albums found for user view.");
+                    }
+                }, { onlyOnce: false });
+            } catch (e) {
+                console.error("[loadAlbumsForUser] Error loading albums for user: ", e);
+                userAlbumListElement.innerHTML = `<p style="text-align: center; color: red; padding: 15px;">Failed to load albums: ${e.message}</p>`;
+            }
+        }
+
+
+        // Delete an album and its media (admin only)
+        window.deleteAlbum = function(albumId, albumName) {
+            console.log(`[deleteAlbum] Attempting to delete album: ${albumName} (ID: ${albumId})`);
+            if (!loggedInAsHet) { 
+                showMessageBox('Access Denied', 'Only admin can delete albums.', 'error');
+                return;
+            }
+            showMessageBox('Confirm Delete Album', `Are you sure you want to delete the album "${albumName}" and ALL its media? This action cannot be undone.`, true, async () => {
+                try {
+                    // Delete all media items associated with the album first
+                    const mediaRef = dbRef(realtimeDb, `media/${albumId}`);
+                    await remove(mediaRef); 
+                    
+                    // Then delete the album entry itself
+                    const albumRef = dbRef(realtimeDb, `albums/${albumId}`);
+                    await remove(albumRef);
+
+                    showMessageBox('Success', `Album "${albumName}" and all its media have been deleted.`, 'success');
+                    console.log(`[deleteAlbum] Album "${albumName}" deleted.`);
+                    // The admin album list will update automatically due to onValue listener
+                } catch (e) {
+                    console.error("[deleteAlbum] Error deleting album:", e);
+                    showMessageBox('Delete Error', `Failed to delete album: ${e.message}`, 'error');
+                }
+            }, 'error', 'Yes, Delete Album', 'No, Cancel'); // Strong warning
+        }
+
+        // Navigate to User Albums screen (Screen 14)
+        window.goToUserAlbums = function() {
+            console.log("[goToUserAlbums] Button clicked.");
+            showScreen('screen14');
+            loadAlbumsForUser(); 
+        }
+
+        // View media within an album (Screen 15)
+        window.viewAlbum = async function(albumIdToView, albumNameToView, isAdminView) {
+            console.log(`[viewAlbum] Viewing album: ${albumNameToView} (ID: ${albumIdToView}), Admin View: ${isAdminView}`);
+            currentAlbumId = albumIdToView; // Store globally for potential media deletion context
+            const albumNameHeader = document.getElementById('currentAlbumName');
+            const albumMediaGrid = document.getElementById('albumMediaGrid');
+
+            if (!albumNameHeader || !albumMediaGrid) {
+                console.error("[viewAlbum] Album header or media grid not found.");
+                return;
+            }
+
+            albumNameHeader.innerHTML = `<i class="fas fa-folder-open" style="margin-right: 8px;"></i> ${albumNameToView}`;
+            albumMediaGrid.innerHTML = '<div class="loading">Loading media...</div>';
+
+            showScreen('screen15'); 
+            
+
+            const mediaRef = dbRef(realtimeDb, `media/${albumIdToView}`);
+            try {
+                onValue(mediaRef, (snapshot) => { // Real-time updates for media items
+                    albumMediaGrid.innerHTML = ''; 
+                    if (snapshot.exists()) {
+                        const mediaData = snapshot.val();
+                        let mediaItems = Object.entries(mediaData).map(([id, media]) => ({id, ...media}));
+                        mediaItems.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); // Newest first
+
+                        if (mediaItems.length === 0) {
+                            albumMediaGrid.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No media items in this album yet.</p>';
+                            console.log(`[viewAlbum] No media items found for album ${albumNameToView}.`);
+                            return;
+                        }
+
+                        mediaItems.forEach(media => {
+                            if (!media.url) {
+                                console.warn(`[viewAlbum] Skipping media item ${media.name} due to missing URL.`);
+                                return; // Skip this item
+                            }
+
+                            const mediaItemDiv = document.createElement('div');
+                            mediaItemDiv.className = 'album-media-item';
+                            
+                            let mediaElementHtml;
+                            const errorPlaceholder = `https://placehold.co/160x130/f8d7da/c82333?text=Error`;
+
+                            if (media.type === 'image') {
+                                mediaElementHtml = `<img src="${media.url}/-/preview/320x260/-/quality/smart_retina/" alt="${media.name}" loading="lazy" onerror="this.onerror=null;this.src='${errorPlaceholder}';">`;
+                                console.log(`[viewAlbum] Image source: ${media.url}/-/preview/320x260/-/quality/smart_retina/`);
+                            } else if (media.type === 'video') {
+                                // For videos, Uploadcare often provides a thumbnail. Using that for preview.
+                                // Direct video tag can be heavy for a grid.
+                                // Consider a play icon overlay and click to open in a modal or new tab for full video.
+                                const thumbnailUrl = `${media.url}-/format/jpeg/-/quality/smart_retina/-/resize/320x260/`;
+                                mediaElementHtml = `
+                                    <div class="video-container">
+                                        <img src="${thumbnailUrl}" alt="Video thumbnail for ${media.name}" loading="lazy" onerror="this.onerror=null;this.src='${errorPlaceholder}';">
+                                        <a href="${media.url}" target="_blank" title="Play video: ${media.name}" class="play-overlay">
+                                            <i class="fas fa-play-circle"></i>
+                                        </a>
+                                    </div>`;
+                                console.log(`[viewAlbum] Video thumbnail source: ${thumbnailUrl}, Full video source: ${media.url}`);
+                            } else {
+                                mediaElementHtml = `<div style="width:100%; height:130px; display:flex; align-items:center; justify-content:center; background:#eee; border-radius:10px; color:#555;">Unsupported</div>`;
+                                console.warn(`[viewAlbum] Unsupported media type for: ${media.name}, URL: ${media.url}`);
+                            }
+
+                            let adminActionsHtml = '';
+                            if (isAdminView) { 
+                                adminActionsHtml = `
+                                    <div class="media-actions">
+                                        <button class="no-btn" onclick="deleteMediaItem('${albumIdToView}', '${media.id}', '${media.uuid}', '${media.name.replace(/'/g, "\\'")}')" title="Delete Media"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                `;
+                            }
+
+                            mediaItemDiv.innerHTML = `
+                                ${mediaElementHtml}
+                                <div class="media-name" title="${media.name}">${media.name.length > 20 ? media.name.substring(0,18)+'...' : media.name}</div>
+                                ${adminActionsHtml}
+                            `;
+                            albumMediaGrid.appendChild(mediaItemDiv);
+                        });
+                        console.log(`[viewAlbum] Loaded ${mediaItems.length} media items for album ${albumNameToView}.`);
+                    } else {
+                        albumMediaGrid.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No media items in this album yet.</p>';
+                        console.log(`[viewAlbum] No media items found for album ${albumNameToView}.`);
+                    }
+                }, { onlyOnce: false }); // Keep listening
+            } catch (e) {
+                console.error("[viewAlbum] Error loading album media: ", e);
+                albumMediaGrid.innerHTML = `<p style="text-align: center; color: red; padding: 20px;">Error loading media: ${e.message}</p>`;
+            }
+        }
+
+        // Delete a specific media item (admin only)
+        window.deleteMediaItem = function(albumIdForMedia, mediaId, fileUuid, mediaName) {
+            console.log(`[deleteMediaItem] Attempting to delete media item: ${mediaName} (ID: ${mediaId}, UUID: ${fileUuid}) from album ${albumIdForMedia}`);
+            if (!loggedInAsHet) { 
+                showMessageBox('Access Denied', 'Only admin can delete media items.', 'error');
+                return;
+            }
+            showMessageBox('Confirm Delete Media', `Are you sure you want to delete the media item "${mediaName}"?`, true, async () => {
+                try {
+                    // Delete from Firebase Realtime DB
+                    const mediaItemRef = dbRef(realtimeDb, `media/${albumIdForMedia}/${mediaId}`);
+                    await remove(mediaItemRef);
+
+                    // Note: Deleting from Uploadcare requires their REST API and your SECRET KEY,
+                    // which should NOT be done from the client-side for security reasons.
+                    // The file will remain on Uploadcare's CDN unless manually deleted via their dashboard
+                    // or a backend process. This app only removes the reference from Firebase.
+                    showMessageBox('Success', `Media item "${mediaName}" reference deleted from album. The file may still exist on the CDN.`, 'success');
+                    console.log(`[deleteMediaItem] Media item "${mediaName}" (UUID: ${fileUuid}) reference deleted from Firebase.`);
+                    // Album view will refresh due to onValue listener
+                } catch (e) {
+                    console.error("[deleteMediaItem] Error deleting media item:", e);
+                    showMessageBox('Delete Error', `Failed to delete media item: ${e.message}`, 'error');
+                }
+            }, 'warning', 'Yes, Delete', 'No, Cancel');
+        }
+
+        // --- Notification Badge Functions --
+        function incrementNotification() {
+            notificationCount++;
+            const badge = document.getElementById('notificationBadge');
+            if (badge) {
+                badge.textContent = notificationCount > 9 ? '9+' : notificationCount.toString();
+                badge.style.display = 'block';
+                console.log(`[Notification] Notification count incremented to: ${notificationCount}`);
+            }
+        }
+
+        function resetNotification() {
+            notificationCount = 0;
+            const badge = document.getElementById('notificationBadge');
+            if (badge) {
+                badge.textContent = '0';
+                badge.style.display = 'none';
+                console.log("[Notification] Notification count reset.");
+            }
+        }
+
+        // --- DOMContentLoaded Listener for initial setup ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log("DOMContentLoaded: Initializing app components.");
+
+            // Service Worker registration removed as per user request.
+
+            // Initialize Uploadcare uploader reference and attach event listener
+            appFileUploader = document.getElementById('appFileUploader');
+            if (appFileUploader) {
+                appFileUploader.onchange = handleUploadcareChange;
+                console.log("DOMContentLoaded: Uploadcare uploader initialized and change listener attached.");
+            } else {
+                console.error("DOMContentLoaded: Uploadcare uploader element #appFileUploader not found!");
+            }
+
+            // Adjust textarea height automatically
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput) {
+                messageInput.addEventListener('input', function() {
+                    this.style.height = 'auto';
+                    this.style.height = (this.scrollHeight) + 'px';
+                });
+            }
+
+            // Enter key for new album name
+            const newAlbumNameInput = document.getElementById('newAlbumNameInput');
+            if (newAlbumNameInput) {
+                newAlbumNameInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') { e.preventDefault(); createAlbum(); }
+                });
+            }
+
+            // Enter key for sending chat message (Shift+Enter for newline)
+            const chatMessageInput = document.getElementById('messageInput');
+            if (chatMessageInput) {
+                chatMessageInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+
+            // Button bounce effect
+            document.querySelectorAll('button').forEach(button => {
+                button.addEventListener('click', function() {
+                    this.classList.add('bounce');
+                    setTimeout(() => { this.classList.remove('bounce'); }, 600);
+                });
+            });
+
+            // Fetch admin UID early
+            await fetchAdminUID();
+
+            // Set up Firebase Auth listener
+            onAuthStateChanged(auth, async (user) => {
+                console.log("onAuthStateChanged: Auth state change detected.");
+                if (user) {
+                    currentUserUID = user.uid;
+                    console.log("onAuthStateChanged: User is logged in. UID:", currentUserUID);
+                    if (user.isAnonymous) {
+                        console.log("onAuthStateChanged: User is anonymous.");
+                        userName = localStorage.getItem('userName') || '';
+                        if (userName && currentScreenId === 'screen1') { // Only pre-fill if on initial screen
+                            document.getElementById('nameInput').value = userName;
+                        }
+                    } else {
+                        console.log("onAuthStateChanged: User is authenticated (non-anonymous).");
+                        const userRef = dbRef(realtimeDb, `users/${user.uid}/name`);
+                        const snapshot = await get(userRef);
+                        userName = snapshot.exists() ? snapshot.val() : (user.email || "Guest");
+                        await set(userRef, userName); // Ensure name is saved/updated
+
+                        if (adminUID && user.uid === adminUID) {
+                            loggedInAsHet = true;
+                            document.getElementById('hetHoButton').style.display = 'none';
+                            console.log("onAuthStateChanged: User is admin.");
+                        } else {
+                            loggedInAsHet = false;
+                            document.getElementById('hetHoButton').style.display = 'flex';
+                            console.log("onAuthStateChanged: User is not admin.");
+                        }
+                    }
+                    requestSystemNotificationPermission();
+                    setupNotificationListener();
+                    loadBackgroundImage();
+                    loadBackgroundImagePreview(); // Load preview on auth state change
+                } else {
+                    // User is signed out (or initially not signed in)
+                    currentUserUID = null;
+                    loggedInAsHet = false;
+                    console.log("onAuthStateChanged: User is signed out.");
+                    try {
+                        // Sign in anonymously if no user is present
+                        if (!auth.currentUser) { // Only sign in anonymously if no user is currently active
+                            const anonymousUserCredential = await signInAnonymously(auth);
+                            currentUserUID = anonymousUserCredential.user.uid;
+                            console.log("onAuthStateChanged: Signed in anonymously. UID:", currentUserUID);
+                            userName = localStorage.getItem('userName') || '';
+                        }
+                        document.getElementById('hetHoButton').style.display = 'flex';
+                        requestSystemNotificationPermission();
+                        setupNotificationListener();
+                        loadBackgroundImage();
+                        loadBackgroundImagePreview(); // Load preview even if anonymous
+                    } catch (error) {
+                        console.error("onAuthStateChanged: Error signing in anonymously:", error);
+                        showMessageBox('Authentication Error', `Failed to sign in anonymously: ${error.message}. App might not function correctly.`, 'error');
+                    }
+                }
+            });
+
+            // Ensure screen1 is active on initial load if no specific state is restored
+            // This logic runs only once after DOM is loaded and after the initial auth state check.
+            if (!localStorage.getItem('userName') && currentScreenId !== 'screen1') {
+                showScreen('screen1');
+                console.log("DOMContentLoaded: No saved user, forcing screen1.");
+            } else if (localStorage.getItem('userName') && currentScreenId === 'screen1') {
+                // If name is saved and we are on screen1, pre-fill and allow user to proceed
+                document.getElementById('nameInput').value = localStorage.getItem('userName');
+                console.log("DOMContentLoaded: Saved user found, pre-filling name on screen1.");
+            }
+        });
+    </script>
+</body>
+</html>
