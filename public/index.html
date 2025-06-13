@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Render Keep-Alive Service</title>
+    <style>
+        /* Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #ffffff;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Styles */
+        header {
+            text-align: center;
+            padding: 50px 0;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #00c6ff, #00ffaa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* Navigation Styles */
+        nav {
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 15px 0;
+            margin-bottom: 30px;
+        }
+
+        nav ul {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+        }
+
+        nav ul li {
+            margin: 0 15px;
+        }
+
+        nav ul li a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        nav ul li a:hover {
+            color: #00c6ff;
+        }
+
+        /* Landing Page Styles */
+        .landing {
+            display: none;
+            text-align: center;
+            padding: 50px 0;
+        }
+
+        .landing h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #00c6ff, #00ffaa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .landing p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            line-height: 1.8;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(to right, #00c6ff, #00ffaa);
+            color: #000;
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 198, 255, 0.4);
+        }
+
+        /* Dashboard Styles */
+        .dashboard {
+            display: none;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: linear-gradient(to right, #00c6ff, #00ffaa);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+        }
+
+        /* Services List Styles */
+        .services-list {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .service-item {
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+
+        .service-item:hover {
+            transform: translateX(5px);
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Footer Styles */
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 50px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+        }
+
+        /* Animation Styles */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        /* Login/Signup Styles */
+        .auth-container {
+            display: none;
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .auth-title {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #00c6ff, #00ffaa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .auth-toggle {
+            margin-top: 20px;
+            color: #00c6ff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav>
+            <ul id="nav-menu">
+                <li><a href="#" id="nav-home">Home</a></li>
+                <li><a href="#" id="nav-login">Login</a></li>
+            </ul>
+            <ul id="dashboard-nav" style="display: none;">
+                <li><a href="#" id="nav-dashboard">Dashboard</a></li>
+            </ul>
+        </nav>
+
+        <!-- Landing Page -->
+        <section class="landing fade-in" id="landing-page">
+            <h1>Render Keep-Alive Service</h1>
+            <p>Welcome to our Render Keep-Alive Service! This platform is designed to help you keep your Render web services active and running smoothly.</p>
+            <p>Render provides a free tier that sleeps after 15 minutes of inactivity. Our service sends automated pings to your Render applications to prevent them from sleeping, ensuring your services stay online and responsive.</p>
+            <p>By using our platform, you can:</p>
+            <ul>
+                <li>Keep your applications running 24/7</li>
+                <li>Customize ping intervals to match your needs</li>
+                <li>Monitor multiple services from one dashboard</li>
+                <li>Receive status updates and alerts</li>
+            </ul>
+            <a href="#" class="btn" id="signup-btn">Sign Up Now</a>
+            <a href="#" class="btn" id="login-btn">Login</a>
+        </section>
+
+        <!-- Login/Signup -->
+        <section class="auth-container fade-in" id="auth-container">
+            <h2 class="auth-title" id="auth-title">Sign Up</h2>
+            <div class="form-group">
+                <label for="auth-email">Email</label>
+                <input type="email" id="auth-email" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label for="auth-password">Password</label>
+                <input type="password" id="auth-password" placeholder="Enter your password">
+            </div>
+            <button id="auth-submit">Submit</button>
+            <div class="auth-toggle" id="auth-toggle">Already have an account? Login here</div>
+        </section>
+
+        <!-- Main Content -->
+        <div id="main-content">
+            <section class="dashboard fade-in" id="dashboard">
+                <h2>Welcome to Your Dashboard</h2>
+                <div class="form-group">
+                    <label for="nameInput">Service Name</label>
+                    <input type="text" id="nameInput" placeholder="Service Name (e.g. My N8N)">
+                </div>
+                <div class="form-group">
+                    <label for="urlInput">Service URL</label>
+                    <input type="text" id="urlInput" placeholder="Service URL (e.g. https://n8n.onrender.com)">
+                </div>
+                <button onclick="addService()">Add Service</button>
+
+                <div class="form-group">
+                    <label>⏱️ Ping Interval (minutes): </label>
+                    <input type="number" id="intervalInput" value="5" min="1" style="width: 60px;">
+                    <button onclick="updateInterval()">Update Interval</button>
+                </div>
+
+                <h3>📡 Monitored Services</h3>
+                <div id="services"></div>
+            </section>
+
+            <section class="services-list fade-in" id="services-list">
+                <!-- Services will be displayed here -->
+            </section>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>&copy; 2023 Render Keep-Alive Service. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        // UI Logic
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show landing page initially
+            document.getElementById('landing-page').style.display = 'block';
+
+            // Navigation
+            document.getElementById('nav-home').addEventListener('click', function(e) {
+                e.preventDefault();
+                showSection('landing-page');
+            });
+            
+            document.getElementById('nav-dashboard').addEventListener('click', function(e) {
+                e.preventDefault();
+                if (isLoggedIn()) {
+                    showSection('dashboard');
+                } else {
+                    alert('Please login to access the dashboard');
+                    showSection('auth-container');
+                    document.getElementById('auth-title').textContent = 'Login';
+                    document.getElementById('auth-submit').textContent = 'Login';
+                    document.getElementById('auth-toggle').textContent = 'Don\'t have an account? Sign Up here';
+                }
+            });
+            
+            document.getElementById('nav-login').addEventListener('click', function(e) {
+                e.preventDefault();
+                showSection('auth-container');
+                document.getElementById('auth-title').textContent = 'Login';
+                document.getElementById('auth-submit').textContent = 'Login';
+                document.getElementById('auth-toggle').textContent = 'Don\'t have an account? Sign Up here';
+            });
+
+            // Signup Button
+            document.getElementById('signup-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                showSection('auth-container');
+                document.getElementById('auth-title').textContent = 'Sign Up';
+                document.getElementById('auth-submit').textContent = 'Sign Up';
+                document.getElementById('auth-toggle').textContent = 'Already have an account? Login here';
+            });
+
+            // Login Button
+            document.getElementById('login-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                showSection('auth-container');
+                document.getElementById('auth-title').textContent = 'Login';
+                document.getElementById('auth-submit').textContent = 'Login';
+                document.getElementById('auth-toggle').textContent = 'Don\'t have an account? Sign Up here';
+            });
+
+            // Auth Toggle
+            document.getElementById('auth-toggle').addEventListener('click', function() {
+                const isLogin = document.getElementById('auth-submit').textContent === 'Login';
+                document.getElementById('auth-title').textContent = isLogin ? 'Sign Up' : 'Login';
+                document.getElementById('auth-submit').textContent = isLogin ? 'Sign Up' : 'Login';
+                document.getElementById('auth-toggle').textContent = isLogin ? 'Already have an account? Login here' : 'Don\'t have an account? Sign Up here';
+            });
+
+            // Auth Submit
+            document.getElementById('auth-submit').addEventListener('click', function() {
+                const email = document.getElementById('auth-email').value;
+                const password = document.getElementById('auth-password').value;
+                
+                if (!email || !password) {
+                    alert('Please enter both email and password');
+                    return;
+                }
+                
+                if (this.textContent === 'Sign Up') {
+                    // Sign up logic
+                    fetch('/api/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email, password }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Registration successful! Please login.');
+                            document.getElementById('auth-title').textContent = 'Login';
+                            document.getElementById('auth-submit').textContent = 'Login';
+                            document.getElementById('auth-toggle').textContent = 'Don\'t have an account? Sign Up here';
+                        } else {
+                            alert(data.message || 'Registration failed');
+                        }
+                    })
+                    .catch(error => {
+                        alert('An error occurred during registration');
+                        console.error('Error:', error);
+                    });
+                } else {
+                    // Login logic
+                    fetch('/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email, password }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Set user session
+                            localStorage.setItem('userToken', data.token);
+                            // Update navigation menu
+                            document.getElementById('nav-menu').style.display = 'none';
+                            document.getElementById('dashboard-nav').style.display = 'block';
+                            // Show dashboard
+                            showSection('dashboard');
+                            loadServices();
+                        } else {
+                            alert(data.message || 'Login failed');
+                        }
+                    })
+                    .catch(error => {
+                        alert('An error occurred during login');
+                        console.error('Error:', error);
+                    });
+                }
+            });
+
+            // Check if user is logged in
+            if (isLoggedIn()) {
+                document.getElementById('nav-menu').style.display = 'none';
+                document.getElementById('dashboard-nav').style.display = 'block';
+                showSection('dashboard');
+                loadServices();
+            }
+        });
+
+        function isLoggedIn() {
+            return localStorage.getItem('userToken') !== null;
+        }
+
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = ['landing-page', 'dashboard', 'auth-container'];
+            sections.forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+
+            // Show the selected section
+            document.getElementById(sectionId).style.display = 'block';
+        }
+
+        function addService() {
+            const url = document.getElementById('urlInput').value.trim();
+            const name = document.getElementById('nameInput').value.trim();
+            
+            if (!url || !name) return alert('Both Name and URL are required');
+
+            fetch('/api/services', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('userToken')
+                },
+                body: JSON.stringify({ name, url })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('urlInput').value = '';
+                    document.getElementById('nameInput').value = '';
+                    loadServices();
+                } else {
+                    alert(data.message || 'Failed to add service');
+                }
+            })
+            .catch(err => alert('Failed to add service'));
+        }
+
+        function updateInterval() {
+            const minutes = parseInt(document.getElementById('intervalInput').value);
+            if (minutes < 1) return alert('Minimum interval is 1 minute');
+
+            fetch('/api/interval', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('userToken')
+                },
+                body: JSON.stringify({ minutes })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Interval set to ${minutes} minute(s)`);
+                } else {
+                    alert(data.message || 'Failed to update interval');
+                }
+            });
+        }
+
+        function deleteService(url) {
+            if (!confirm("Are you sure you want to delete this service?")) return;
+
+            fetch('/api/services', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('userToken')
+                },
+                body: JSON.stringify({ url })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadServices();
+                } else {
+                    alert(data.message || 'Failed to delete service');
+                }
+            })
+            .catch(() => alert("Failed to delete service"));
+        }
+
+        function loadServices() {
+            fetch('/api/services', {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('userToken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const container = document.getElementById('services');
+                    container.innerHTML = '';
+                    data.services.forEach(service => {
+                        const div = document.createElement('div');
+                        div.className = `service-item ${service.status}`;
+                        div.innerHTML = `
+                            <h3>🏷️ <strong>${service.name}</strong></h3>
+                            <p>🔗 <a href="${service.url}" target="_blank" style="color: #00c6ff;">${service.url}</a></p>
+                            <p>📡 Status: <span style="color:${service.status === 'active' ? 'lime' : (service.status === 'inactive' ? 'red' : 'gray')}">${service.status}</span></p>
+                            <p>🕒 Last Ping: ${service.lastPing ? new Date(service.lastPing).toLocaleString() : 'N/A'}</p>
+                            <button style="margin-top: 8px; background: red; color: white;" onclick="deleteService('${service.url}')">🗑️ Delete</button>
+                        `;
+                        container.appendChild(div);
+                    });
+                } else {
+                    alert(data.message || 'Failed to load services');
+                }
+            });
+        }
+
+        setInterval(loadServices, 5000);
+    </script>
+</body>
+</html>
